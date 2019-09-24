@@ -11,7 +11,7 @@ class TestStringMethods(unittest.TestCase):
     # test to check whether the power is correctly computed
     def test_power(self):
         try:
-            self.assertEqual(power(2, 4), 15)
+            self.assertEqual(power(2, 4), 16)
             qf['powerCorrect'] = True
         except:
             qf['powerCorrect'] = False
