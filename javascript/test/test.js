@@ -4,7 +4,7 @@ const fs = require("fs");
 
 /**
  * Before running the unit tests, load the data containing information about the exercise, the answers, and
- * any other data that was generated in earlier steps by other processor.
+ * any other data that was generated in earlier steps by other actions.
  */
 let qf = {};
 if (fs.existsSync("qf.json")) {
