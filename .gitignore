@@ -1,3 +1,12 @@
+# generated files for javascript example
 javascript/node_modules
 javascript/qf.json
+
+# generated files for python example
+python/src/__pycache__
 python/qf.json
+
+# generated files for java example
+java/build
+java/.gradle
+java/qf.json
