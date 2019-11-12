@@ -18,3 +18,8 @@ cpp/src/CMakeCache.txt
 cpp/src/Makefile
 cpp/src/test
 cpp/qf.json
+
+# generated files for c# example
+csharp/src/bin
+csharp/src/obj
+csharp/qf.json
