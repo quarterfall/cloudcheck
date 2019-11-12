@@ -10,3 +10,11 @@ python/qf.json
 java/build
 java/.gradle
 java/qf.json
+
+# generated files for c++ example
+cpp/src/CMakeFiles
+cpp/src/cmake_install.cmake
+cpp/src/CMakeCache.txt
+cpp/src/Makefile
+cpp/src/test
+cpp/qf.json
