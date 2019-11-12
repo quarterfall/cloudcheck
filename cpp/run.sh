@@ -2,4 +2,6 @@
 echo $answer > ./src/answer.hpp
 
 # go to the src folder, build and test
-cd src && make && ./test
+cd src
+make
+./test

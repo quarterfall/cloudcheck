@@ -1,2 +1,2 @@
 # build the cmake project
-cmake src
+cd src && cmake
