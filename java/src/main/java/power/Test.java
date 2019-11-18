@@ -12,7 +12,6 @@ class Test
 {
 	private JSONObject data;
 
-
 	private void ReadData() {
 		// JSON parser object to parse read file
         JSONParser jsonParser = new JSONParser();
