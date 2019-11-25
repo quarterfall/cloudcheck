@@ -44,7 +44,7 @@ int main() {
 
     /**
      * Once the unit tests are completed, write the updated QF object to the JSON file.
-     * The Cloud Check server will send the contents of this file back as a response, so the feedback
+     * The Cloud check server will send the contents of this file back as a response, so the feedback
      * mechanism can use this data.
      */
     std::ofstream o("../qf.json");
