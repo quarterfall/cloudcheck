@@ -8,7 +8,7 @@ public class Test
     private void ReadData()
     {
         /**
-         * Before running the unit tests, load the data containing information about the exercise, the answers, and
+         * Before running the unit tests, load the data containing information about the block, the answers, and
          * any other data that was generated in earlier steps by other actions.
          */
         string qfText = File.ReadAllText("../qf.json");

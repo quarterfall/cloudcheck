@@ -10,7 +10,7 @@ using json = nlohmann::json;
 int main() {
 
     /**
-     * Before running the unit tests, load the data containing information about the exercise, the answers, and
+     * Before running the unit tests, load the data containing information about the block, the answers, and
      * any other data that was generated in earlier steps by other actions.
      */
     std::ifstream i("../qf.json");
