@@ -1,10 +1,14 @@
-import unittest
 import json
 import os.path
+
 from answer import power
+
+forimport unittest
+
 
 # Quarterfall object containing the data
 qf = {}
+
 
 class TestStringMethods(unittest.TestCase):
 
@@ -16,7 +20,7 @@ class TestStringMethods(unittest.TestCase):
         except:
             qf['powerCorrect'] = False
             raise
-    
+
     # test to check whether the power is correctly computed for non-integers
     def test_power_non_integer(self):
         try:
@@ -25,7 +29,7 @@ class TestStringMethods(unittest.TestCase):
         except:
             qf['powerNonIntegerCorrect'] = False
             raise
-    
+
     # test to check whether the power is correctly computed if n equals 0
     def test_power_zero(self):
         try:
@@ -41,12 +45,15 @@ class TestStringMethods(unittest.TestCase):
         if os.path.exists('qf.json'):
             json_file = open('qf.json')
             qf = json.load(json_file)
+            json_file.close()
 
     @classmethod
     def tearDownClass(cls):
         # write the qf data to the json file
         outfile = open('qf.json', 'w')
         json.dump(qf, outfile)
+        outfile.close()
+
 
 if __name__ == '__main__':
     unittest.main()
