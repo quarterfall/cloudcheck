@@ -1,10 +1,8 @@
 import json
 import os.path
+import unittest
 
 from answer import power
-
-forimport unittest
-
 
 # Quarterfall object containing the data
 qf = {}
