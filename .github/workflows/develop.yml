@@ -43,7 +43,7 @@ jobs:
             - name: Build
               run: |
                   echo "PORT=80" >> .env
-                  export IMAGE_NAME=eu.gcr.io/$GCS_PROJECT/$APP_NAME.$APP_ENV
+                  export IMAGE_NAME=eu.gcr.io/${{ secrets.GCS_PROJECT }}/$APP_NAME.$APP_ENV
                   export IMAGE_NAME_DEPLOY=$IMAGE_NAME.$GITHUB_SHA.$(date +%s)
                   docker build --build-arg PORT=80 . -t $IMAGE_NAME_DEPLOY -t $IMAGE_NAME:latest
 
