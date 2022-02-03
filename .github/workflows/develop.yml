@@ -39,17 +39,21 @@ jobs:
                   location: ${{ env.GCS_ZONE }}
                   credentials: ${{ secrets.GCS_SA_KEY }}
 
-            # Build the artifact
-            - name: Build
+            # Prepare the environment
+            - name: Prepare
               run: |
                   echo "PORT=80" >> .env
                   echo "$IMAGE_NAME=eu.gcr.io/${{ secrets.GCS_PROJECT }}/$APP_NAME.$APP_ENV" >> $GITHUB_ENV
-                  echo "$IMAGE_NAME_DEPLOY=$IMAGE_NAME.$GITHUB_SHA.$(date +%s)"
-                  docker build . -t $IMAGE_NAME_DEPLOY -t $IMAGE_NAME:latest
+                  echo "$IMAGE_NAME_EXT=$GITHUB_SHA.$(date +%s)" >> $GITHUB_ENV
+
+            # Build the artifact
+            - name: Build
+              run: |
+                  docker build . -t $IMAGE_NAME.$IMAGE_NAME_EXT -t $IMAGE_NAME:latest
 
             # Publish the artifact
             - name: Publish
               run: |
                   docker push $IMAGE_NAME_DEPLOY
                   docker push $IMAGE_NAME:latest
-                  kubectl --namespace=$APP_ENV set image deployment $APP_NAME $APP_NAME=$IMAGE_NAME_DEPLOY
+                  kubectl --namespace=$APP_ENV set image deployment $APP_NAME $APP_NAME=$IMAGE_NAME.$IMAGE_NAME_EXT
