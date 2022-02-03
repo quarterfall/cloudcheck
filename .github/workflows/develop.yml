@@ -10,8 +10,6 @@ env:
     GCS_ZONE: europe-west1-b
     APP_NAME: cloudcheck
     APP_ENV: devserver
-    IMAGE_NAME: eu.gcr.io/${{ secrets.GCS_PROJECT }}/${{ env.APP_NAME }}.${{ env.APP_ENV }}
-    IMAGE_NAME_DEPLOY: ${{ env.IMAGE_NAME }}.$GITHUB_SHA.$(date +%s)
 
 jobs:
     setup-build-publish-deploy:
@@ -45,6 +43,8 @@ jobs:
             - name: Build
               run: |
                   echo "PORT=80" >> .env
+                  echo "$IMAGE_NAME=eu.gcr.io/${{ secrets.GCS_PROJECT }}/$APP_NAME.$APP_ENV" >> $GITHUB_ENV
+                  echo "$IMAGE_NAME_DEPLOY=$IMAGE_NAME.$GITHUB_SHA.$(date +%s)"
                   docker build . -t $IMAGE_NAME_DEPLOY -t $IMAGE_NAME:latest
 
             # Publish the artifact
