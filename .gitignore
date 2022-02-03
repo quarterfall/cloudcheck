@@ -23,3 +23,12 @@ cpp/qf.json
 csharp/src/bin
 csharp/src/obj
 csharp/qf.json
+
+# build folders
+node_modules
+.env
+.env.staging
+.env.production
+
+# other files
+**/.DS_Store
