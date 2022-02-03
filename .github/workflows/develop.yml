@@ -43,8 +43,10 @@ jobs:
             - name: Prepare
               run: |
                   echo "PORT=80" >> .env
-                  echo "IMAGE_NAME=eu.gcr.io/${{ secrets.GCS_PROJECT }}/$APP_NAME.$APP_ENV" >> $GITHUB_ENV
-                  echo "IMAGE_NAME_DEPLOY=$IMAGE_NAME.$GITHUB_SHA.$(date +%s)" >> $GITHUB_ENV
+                  export IMAGE_NAME=eu.gcr.io/${{ secrets.GCS_PROJECT }}/$APP_NAME.$APP_ENV
+                  export IMAGE_NAME_DEPLOY=$IMAGE_NAME.$GITHUB_SHA.$(date +%s)
+                  echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+                  echo "IMAGE_NAME_DEPLOY=$IMAGE_NAME_DEPLOY" >> $GITHUB_ENV
 
             # Build the artifact
             - name: Build
