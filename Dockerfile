@@ -37,7 +37,7 @@ RUN apt-get update
 RUN apt-get install -y dotnet-sdk-6.0
 
 # install Gradle (needed for Java compilation)
-ENV GRADLE_VERSION=6.9.1
+ENV GRADLE_VERSION=7.4
 RUN curl -L https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip -o gradle-$GRADLE_VERSION-bin.zip
 RUN unzip gradle-$GRADLE_VERSION-bin.zip
 ENV GRADLE_HOME=/usr/src/app/gradle-$GRADLE_VERSION
