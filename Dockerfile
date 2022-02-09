@@ -42,7 +42,7 @@ RUN curl -L https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin
 RUN unzip gradle-$GRADLE_VERSION-bin.zip
 ENV GRADLE_HOME=/usr/src/app/gradle-$GRADLE_VERSION
 ENV PATH=$PATH:$GRADLE_HOME/bin
-RUN ECHO "org.gradle.caching=true" >> $GRADLE_HOME/gradle.properties
+RUN echo "org.gradle.caching=true" > $GRADLE_HOME/gradle.properties
 
 # Define and expose the port
 EXPOSE $PORT
