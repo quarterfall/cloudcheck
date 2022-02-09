@@ -183,6 +183,8 @@ const cloudCheck = async (req: express.Request, res: express.Response) => {
     // parse body of requests as JSON
     app.use(bodyParser.json());
 
+    app.get("/", (req, res) => res.send("CloudCheck server is running."));
+
     // route definition
     app.post("/", cloudCheck);
 
