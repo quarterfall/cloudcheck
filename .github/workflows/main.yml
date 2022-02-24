@@ -1,0 +1,61 @@
+name: Build and Deploy to GKE
+
+on:
+    push:
+        branches:
+            - main
+
+env:
+    GCS_CLUSTER: quarterfall
+    GCS_ZONE: europe-west1-b
+    APP_NAME: cloudcheck
+    APP_ENV: production
+
+jobs:
+    setup-build-publish-deploy:
+        name: Setup, Build, Publish, and Deploy
+        runs-on: ubuntu-latest
+        environment: production
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+
+            # Setup gcloud CLI
+            - uses: google-github-actions/setup-gcloud@94337306dda8180d967a56932ceb4ddcf01edae7
+              with:
+                  service_account_key: ${{ secrets.GCS_SA_KEY }}
+                  project_id: ${{ secrets.GCS_PROJECT }}
+
+            # Configure Docker to use the gcloud command-line tool as a credential
+            # helper for authentication
+            - run: |-
+                  gcloud --quiet auth configure-docker
+
+            # Get the GKE credentials so we can deploy to the cluster
+            - uses: google-github-actions/get-gke-credentials@fb08709ba27618c31c09e014e1d8364b02e5042e
+              with:
+                  cluster_name: ${{ env.GCS_CLUSTER }}
+                  location: ${{ env.GCS_ZONE }}
+                  credentials: ${{ secrets.GCS_SA_KEY }}
+
+            # Prepare the environment
+            - name: Prepare
+              run: |
+                  echo "PORT=80" >> .env
+                  export IMAGE_NAME=eu.gcr.io/${{ secrets.GCS_PROJECT }}/$APP_NAME.$APP_ENV
+                  export IMAGE_NAME_DEPLOY=$IMAGE_NAME.$GITHUB_SHA.$(date +%s)
+                  echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+                  echo "IMAGE_NAME_DEPLOY=$IMAGE_NAME_DEPLOY" >> $GITHUB_ENV
+
+            # Build the artifact
+            - name: Build
+              run: |
+                  docker build . -t $IMAGE_NAME_DEPLOY -t $IMAGE_NAME:latest
+
+            # Publish the artifact
+            - name: Publish
+              run: |
+                  docker push $IMAGE_NAME_DEPLOY
+                  docker push $IMAGE_NAME:latest
+                  kubectl --namespace=$APP_ENV set image deployment $APP_NAME $APP_NAME=$IMAGE_NAME_DEPLOY
