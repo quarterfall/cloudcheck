@@ -180,7 +180,7 @@ const cloudCheck = async (req: express.Request, res: express.Response) => {
     }
 };
 
-const ioTest = async (req: express.Request, res: express.Response) => {
+const run = async (req: express.Request, res: express.Response) => {
     // verify that there is a request body and that it contains the required data
     if (!req.body) {
         res.status(400).send("Missing request body.");
@@ -259,7 +259,7 @@ const ioTest = async (req: express.Request, res: express.Response) => {
 
     // route definition
     app.post("/", cloudCheck);
-    app.post("/ioTest", ioTest);
+    app.post("/run", run);
 
     // start the server
     const port = Number(process.env.PORT) || 2700;
