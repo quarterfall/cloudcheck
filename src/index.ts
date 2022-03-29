@@ -202,12 +202,7 @@ const run = async (req: express.Request, res: express.Response) => {
     try {
         for (const i of data.inputs) {
             // write input to file
-            let fileInput = i.input
-                .split(",")
-                .map((item: string) => item.trim())
-                .join("\n");
-            fs.writeFileSync(`./${filePath}/inputs.txt`, fileInput);
-
+            fs.writeFileSync(`./${filePath}/inputs.txt`, i.input);
             // run code and push output to qf object
             const { stdout } = await runCode({
                 data,
