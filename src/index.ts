@@ -210,7 +210,7 @@ const run = async (req: express.Request, res: express.Response) => {
                 language: path,
                 args: [`< ./${filePath}/inputs.txt`],
             });
-            outputs.push(stdout.replace(/(\r\n|\n|\r)/gm, ""));
+            outputs.push(stdout.replace(/\n+$/, ""));
             // remove input file
             await runCommand(`rm ./${filePath}/inputs.txt`);
         }
