@@ -79,7 +79,9 @@ async function runCsharp({ code, filePath }: ProgrammingLanguageOptions) {
         );
         fs.writeFileSync(path, code);
     }
-    return await runCommand(`cd ${filePath} && dotnet run < ./inputs.txt`);
+    return await runCommand(
+        `cd ${filePath} && dotnet run --nologo < ./inputs.txt`
+    );
 }
 
 async function runJavascript({ code, filePath }: ProgrammingLanguageOptions) {

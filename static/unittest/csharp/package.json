@@ -3,6 +3,6 @@
     "version": "0.0.1",
     "scripts": {
         "build": "node build.js",
-        "test": "dotnet run"
+        "test": "dotnet run --nologo"
     }
 }
