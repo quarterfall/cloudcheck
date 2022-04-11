@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y \
     cmake
 
 # Install Python libraries
-RUN python3 -m pip install scikit-learn pandas pandas-datareader numpy xlrd statsmodels openpyxl
+RUN python3 -m pip install scikit-learn pandas pandas-datareader numpy xlrd statsmodels openpyxl flake8
 
 RUN wget https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
 RUN dpkg -i packages-microsoft-prod.deb

@@ -78,6 +78,7 @@ async function runCsharp({ code, filePath }: ProgrammingLanguageOptions) {
             `cp -r ./static/iotest/csharp/csharp.csproj ${filePath}`
         );
         fs.writeFileSync(path, code);
+        await runCommand(`cd ${filePath} && dotnet build --nologo`);
     }
     return await runCommand(
         `cd ${filePath} && dotnet run --nologo < ./inputs.txt`
