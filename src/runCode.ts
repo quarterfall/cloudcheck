@@ -29,7 +29,7 @@ export async function runCode(options: RunCodeOptions) {
         case "csharp":
             return runCsharp({ code, filePath, args });
         case "javascript":
-            return runJavascript({ code, filePath });
+            return runJavascript({ code, filePath, args });
         default:
             return null;
     }
@@ -85,10 +85,14 @@ async function runCsharp({ code, filePath }: ProgrammingLanguageOptions) {
     );
 }
 
-async function runJavascript({ code, filePath }: ProgrammingLanguageOptions) {
+async function runJavascript({
+    code,
+    filePath,
+    args,
+}: ProgrammingLanguageOptions) {
     const path = `./${filePath}/code.js`;
     if (!fs.existsSync(path)) {
         fs.writeFileSync(path, code);
     }
-    return await runCommand(`node ${path}`);
+    return await runCommand(`node ${path} ${[...args]}`);
 }
