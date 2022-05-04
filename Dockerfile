@@ -51,5 +51,5 @@ RUN echo "org.gradle.daemon=true" >> $GRADLE_HOME/gradle.properties
 EXPOSE $PORT
 
 # Start the node server
-CMD [ "/start.sh" ]
+CMD [ "./start.sh" ]
 #CMD [ "./node_modules/.bin/ts-node", "-r", "tsconfig-paths/register", "src/index.ts" ]
