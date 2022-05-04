@@ -9,6 +9,8 @@ RUN mkdir -p /usr/src/app
 
 # Copy the application files
 COPY . /usr/src/app/
+RUN chmod +x /usr/src/app/start.sh
+
 
 # Set the working directory to be the app folder
 WORKDIR /usr/src/app
@@ -43,9 +45,11 @@ RUN unzip gradle-$GRADLE_VERSION-bin.zip
 ENV GRADLE_HOME=/usr/src/app/gradle-$GRADLE_VERSION
 ENV PATH=$PATH:$GRADLE_HOME/bin
 RUN echo "org.gradle.caching=true" > $GRADLE_HOME/gradle.properties
+RUN echo "org.gradle.daemon=true" >> $GRADLE_HOME/gradle.properties
 
 # Define and expose the port
 EXPOSE $PORT
 
 # Start the node server
-CMD [ "./node_modules/.bin/ts-node", "-r", "tsconfig-paths/register", "src/index.ts" ]
+CMD [ "./start.sh" ]
+#CMD [ "./node_modules/.bin/ts-node", "-r", "tsconfig-paths/register", "src/index.ts" ]
