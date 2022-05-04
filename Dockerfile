@@ -44,6 +44,10 @@ ENV GRADLE_HOME=/usr/src/app/gradle-$GRADLE_VERSION
 ENV PATH=$PATH:$GRADLE_HOME/bin
 RUN echo "org.gradle.caching=true" > $GRADLE_HOME/gradle.properties
 
+# start the Gradle daemon
+RUN echo "org.gradle.daemon=true" >> $GRADLE_HOME/gradle.properties
+RUN gradle --daemon
+
 # Define and expose the port
 EXPOSE $PORT
 
