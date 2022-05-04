@@ -9,7 +9,7 @@ RUN mkdir -p /usr/src/app
 
 # Copy the application files
 COPY . /usr/src/app/
-RUN chmod +x /start.sh
+RUN chmod +x /usr/src/app/start.sh
 
 
 # Set the working directory to be the app folder
