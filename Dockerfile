@@ -20,7 +20,12 @@ RUN npm install
 
 # Install basic dependencies from the package manager
 RUN apt-get update && apt-get install -y \
+    dirmngr \
+    gnupg \
     apt-transport-https \
+    ca-certificates \
+    software-properties-common \
+    gpg \
     unzip \
     default-jdk \
     maven \
@@ -32,6 +37,7 @@ RUN apt-get update && apt-get install -y \
 # Install Python libraries
 RUN python3 -m pip install scikit-learn pandas pandas-datareader numpy xlrd statsmodels openpyxl flake8
 
+# Install Dotnet (needed for C# compilation)
 RUN wget https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
 RUN dpkg -i packages-microsoft-prod.deb
 RUN rm packages-microsoft-prod.deb
@@ -46,6 +52,12 @@ ENV GRADLE_HOME=/usr/src/app/gradle-$GRADLE_VERSION
 ENV PATH=$PATH:$GRADLE_HOME/bin
 RUN echo "org.gradle.caching=true" > $GRADLE_HOME/gradle.properties
 RUN echo "org.gradle.daemon=true" >> $GRADLE_HOME/gradle.properties
+
+#install R package
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-key '95C0FAF38DB3CCAD0C080A7BDC78B2DDEABC47B7'
+RUN add-apt-repository 'deb http://cloud.r-project.org/bin/linux/debian bullseye-cran40/'
+RUN apt-get update
+RUN apt-get install -y r-base r-base-dev
 
 # Define and expose the port
 EXPOSE $PORT
