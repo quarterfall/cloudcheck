@@ -14,7 +14,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 dependencies {
-    compile "com.googlecode.json-simple:json-simple:1.1.1"
-    testCompile "junit:junit:5.8.2"
+    implementation "com.googlecode.json-simple:json-simple:1.1.1"
+    testImplementation "junit:junit:5.8.2"
 }
 // end::dependencies[]
