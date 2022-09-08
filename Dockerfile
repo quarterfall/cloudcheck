@@ -59,6 +59,11 @@ RUN add-apt-repository 'deb http://cloud.r-project.org/bin/linux/debian bullseye
 RUN apt-get update
 RUN apt-get install -y r-base r-base-dev
 
+#install Go library
+RUN wget https://go.dev/dl/go1.19.linux-amd64.tar.gz -O go1.19.linux-amd64.tar.gz
+RUN rm -rf /usr/local/go && tar -C /usr/local -xzf go1.19.linux-amd64.tar.gz
+RUN export PATH=$PATH:/usr/local/go/bin
+
 # Define and expose the port
 EXPOSE $PORT
 

@@ -1,4 +1,4 @@
-import { exec, spawn } from "child_process";
+import { spawn } from "child_process";
 
 export interface RunScriptOptions {
     script: string;
@@ -8,25 +8,12 @@ export interface RunScriptOptions {
     env?: Record<string, string>; // any environment variables
 }
 
-export async function runCommand(
-    command: string
-): Promise<{ stdout: string; stderr: string }> {
-    return new Promise((resolve, reject) => {
-        exec(command, (error, stdout, stderr) => {
-            if (error) {
-                reject(error);
-            }
-            resolve({ stdout, stderr });
-        });
-    });
-}
-
 export async function runScript(options: RunScriptOptions) {
     return new Promise<number>((resolve, reject) => {
         // set default values
         options = Object.assign(
             {
-                timeout: 30000,
+                timeout: 30 * 1000,
             },
             options
         );
@@ -39,6 +26,7 @@ export async function runScript(options: RunScriptOptions) {
                 cwd,
                 env,
                 detached: true,
+                timeout,
             });
 
             // kill the process after the timeout occurs
