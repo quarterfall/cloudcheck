@@ -1,3 +1,4 @@
+import { ProgrammingLanguage } from "@quarterfall/core";
 import { runCommand } from "helpers/runCommand";
 import { PipelineStepExtraOptions } from "index";
 import fs = require("fs");
@@ -45,11 +46,17 @@ export async function run_code(
         // run code and push output to qf object
         const pipedInput = `< ${filePath}/inputs.txt`;
 
-        const { stdout } = await outputDict[language]({
+        let { stdout } = await outputDict[language]({
             code,
             filePath,
             pipedInput,
         });
+
+        // in R, the standard output print the line number so we need to delete that
+        if (language === ProgrammingLanguage.r) {
+            stdout = stdout.replace(/\[.*]\s/i, "");
+        }
+
         outputs.push(stdout.replace(/\n+$/, ""));
         // remove input file
         await runCommand(`rm ${filePath}/inputs.txt`);
@@ -121,7 +128,7 @@ async function runR({ code, filePath, pipedInput }: RunCodeOptions) {
     if (!fs.existsSync(path)) {
         fs.writeFileSync(path, code);
     }
-    return runCommand(`#!/usr/bin/env Rscript ${path} ${pipedInput}`);
+    return runCommand(`Rscript ${path} ${pipedInput}`);
 }
 
 async function runGo({ code, filePath, pipedInput }: RunCodeOptions) {
