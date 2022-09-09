@@ -17,6 +17,7 @@ export async function run_code(
 ): Promise<{ resultData: any; resultLog?: string[]; resultCode: number }> {
     const { language, log } = options;
     const code = (data.code || data.embeddedAnswer || data.answer) as string;
+    const inputs = data.inputs || [{ input: "" }];
 
     if (!language || !code) {
         log.push(
@@ -40,7 +41,7 @@ export async function run_code(
     };
 
     let outputs = [];
-    for (const i of data.inputs) {
+    for (const i of inputs) {
         // write input to file
         fs.writeFileSync(`${filePath}/inputs.txt`, i.input);
         // run code and push output to qf object
