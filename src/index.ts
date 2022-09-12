@@ -86,7 +86,7 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
             console.log(
                 `Completed cloud compile request: ${requestId} [${diff}ms].`
             );
-            const statusCode = code === 0 ? 200 : 400;
+            const statusCode = code === ExitCode.NoError ? 200 : 400;
             res.status(statusCode).send({
                 data,
                 log: log.map((entry) => entry.trim()),
