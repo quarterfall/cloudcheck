@@ -68,7 +68,6 @@ export async function run_code(
 
 async function runPython(options: RunCodeOptions) {
     const { code, filePath, pipedInput } = options;
-    console.log(pipedInput);
     const path = `${filePath}/code.py`;
     if (!fs.existsSync(path)) {
         fs.writeFileSync(path, code);
@@ -104,8 +103,9 @@ async function runCpp({ code, filePath, pipedInput }: RunCodeOptions) {
     return runCommand(`${filePath}/runCode ${pipedInput}`);
 }
 
-async function runCsharp({ code, filePath }: RunCodeOptions) {
+async function runCsharp({ code, filePath, pipedInput }: RunCodeOptions) {
     const path = `${filePath}/Program.cs`;
+    pipedInput = pipedInput.replace(filePath, ".");
     if (!fs.existsSync(path)) {
         await runCommand(
             `cp -r ./static/run_code/csharp/csharp.csproj ${filePath}`
@@ -113,7 +113,7 @@ async function runCsharp({ code, filePath }: RunCodeOptions) {
         fs.writeFileSync(path, code);
         await runCommand(`cd ${filePath} && dotnet build --nologo`);
     }
-    return runCommand(`cd ${filePath} && dotnet run --nologo < ./inputs.txt`);
+    return runCommand(`cd ${filePath} && dotnet run --nologo ${pipedInput}`);
 }
 
 async function runJavascript({ code, filePath, pipedInput }: RunCodeOptions) {

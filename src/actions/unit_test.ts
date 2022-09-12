@@ -1,3 +1,4 @@
+import { ExitCode } from "@quarterfall/core";
 import { createPlayground } from "helpers/createPlayground";
 import { runScript } from "helpers/runScript";
 import { PipelineStepExtraOptions } from "index";
@@ -8,15 +9,13 @@ export async function unit_test(
     requestId: string,
     options: PipelineStepExtraOptions
 ): Promise<{ resultData: any; resultLog?: string[]; resultCode: number }> {
-    const { localPath, log } = options;
+    let { localPath, log, code } = options;
 
     await createPlayground({
         localPath,
         requestId,
         log,
     });
-    // run git script
-    let code: number;
 
     if (fs.existsSync(`./${requestId}/${localPath}/run.sh`)) {
         // write the qf object to a file in the directory
@@ -29,6 +28,7 @@ export async function unit_test(
         console.log(
             `[${requestId}] Running unit test run script at path ${localPath}...`
         );
+
         code = await runScript({
             script: "./run.sh",
             cwd: `./${requestId}/${localPath}`,
@@ -51,7 +51,7 @@ export async function unit_test(
             resultData = JSON.parse(quarterfallUpdated.toString());
         } catch (error) {
             console.log(error);
-            code = 1;
+            code = ExitCode.InternalError;
         }
     }
     return { resultData, resultCode: code, resultLog: log };

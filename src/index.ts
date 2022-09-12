@@ -1,8 +1,9 @@
 import express = require("express");
 import {
-    CloudcheckActionType,
+    CloudcheckRequestBody,
+    ExitCode,
     generateId,
-    ProgrammingLanguage,
+    PipelineStepOptions,
 } from "@quarterfall/core";
 import { git } from "actions/git";
 import { run_code } from "actions/run_code";
@@ -17,31 +18,11 @@ let gitCacheCreationDateTime = Date.now();
 
 const app: express.Express = express();
 
-interface PipelineStepOptions {
-    language: ProgrammingLanguage;
-    // For git action
-    gitUrl?: string;
-    gitBranch?: string;
-    gitPrivateKey?: string;
-    gitPath?: string;
-    forceOverrideCache?: boolean;
-}
-
 export interface PipelineStepExtraOptions extends PipelineStepOptions {
     log?: string[];
     code?: number;
     localPath?: string;
     gitCacheCreationDateTime?: number;
-}
-
-interface PipelineStep {
-    action: CloudcheckActionType;
-    options: PipelineStepOptions;
-}
-
-interface CloudcheckRequestBody {
-    data: any;
-    pipeline: PipelineStep[];
 }
 
 const cloudcheck = async (req: express.Request, res: express.Response) => {
@@ -66,7 +47,7 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
     console.log(`Cloud check request id: ${requestId}.`);
 
     let log: string[] = data.log || [];
-    let code: number = 0;
+    let code: number = ExitCode.NoError;
 
     const runActionDict = {
         run_code,
@@ -94,7 +75,7 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
         } catch (error) {
             console.log(error);
             log.push(error.message);
-            code = 1;
+            code = ExitCode.InternalError;
         } finally {
             // cleanup
             if (cleanup) {

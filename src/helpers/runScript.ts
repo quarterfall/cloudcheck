@@ -1,3 +1,4 @@
+import { ExitCode } from "@quarterfall/core";
 import { spawn } from "child_process";
 
 export interface RunScriptOptions {
@@ -18,7 +19,7 @@ export async function runScript(options: RunScriptOptions) {
             options
         );
         const { script, cwd, log = [], timeout, env } = options;
-        let processTimeout;
+        let processTimeout: NodeJS.Timeout;
 
         try {
             // run the script with the directory as the working directory
@@ -28,12 +29,6 @@ export async function runScript(options: RunScriptOptions) {
                 detached: true,
                 timeout,
             });
-
-            // kill the process after the timeout occurs
-            processTimeout = setTimeout(() => {
-                console.log(`Killing process after timeout.`);
-                process.kill(-child.pid, "SIGINT");
-            }, timeout);
 
             // buffered output
             let lineBuffer = "";
@@ -52,6 +47,17 @@ export async function runScript(options: RunScriptOptions) {
                 // set the line buffer to be the last line
                 lineBuffer = lines[lines.length - 1];
             };
+
+            // kill the process after the timeout occurs
+            processTimeout = setTimeout(() => {
+                try {
+                    console.log(`Killing process after timeout.`);
+                    process.kill(-child.pid, "SIGINT");
+                } catch (error) {
+                    console.log(error);
+                    resolve(ExitCode.TimeoutError);
+                }
+            }, timeout);
 
             // pass along any output
             child.stdout.setEncoding("utf8");

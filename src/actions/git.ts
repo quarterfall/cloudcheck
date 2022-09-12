@@ -1,3 +1,4 @@
+import { ExitCode } from "@quarterfall/core";
 import { createPlayground } from "helpers/createPlayground";
 import { runScript } from "helpers/runScript";
 import { PipelineStepExtraOptions } from "index";
@@ -16,6 +17,7 @@ export async function git(
         gitPath,
         localPath,
         log,
+        code,
     } = options;
 
     await createPlayground({
@@ -28,9 +30,6 @@ export async function git(
         localPath,
         log,
     });
-
-    // run git script
-    let code: number;
 
     if (fs.existsSync(`./${requestId}/${localPath}/run.sh`)) {
         // write the qf object to a file in the directory
@@ -65,7 +64,7 @@ export async function git(
             resultData = JSON.parse(quarterfallUpdated.toString());
         } catch (error) {
             console.log(error);
-            code = 1;
+            code = ExitCode.InternalError;
         }
     }
     return { resultData, resultCode: code, resultLog: log };
