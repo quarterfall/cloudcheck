@@ -1,12 +1,15 @@
 import { ProgrammingLanguage } from "@quarterfall/core";
 import { runCommand } from "helpers/runCommand";
+import { runJavascript } from "helpers/runJavascript";
 import { PipelineStepExtraOptions } from "index";
+import ts = require("typescript");
 import fs = require("fs");
 import location = require("path");
+import lodash = require("lodash");
 
-interface RunCodeOptions {
+export interface RunCodeOptions {
     code: string;
-    filePath: string;
+    filePath?: string;
     pipedInput?: string;
 }
 
@@ -15,7 +18,7 @@ export async function run_code(
     requestId: string,
     options: PipelineStepExtraOptions
 ): Promise<{ resultData: any; resultLog?: string[]; resultCode: number }> {
-    const { language, log } = options;
+    const { language, log, expression, external } = options;
     const code = (data.code || data.embeddedAnswer || data.answer) as string;
     const inputs = data.inputs || [{ input: "" }];
 
@@ -29,38 +32,54 @@ export async function run_code(
     const filePath = `./${requestId}/run_code/${language}`;
     fs.mkdirSync(filePath, { recursive: true });
 
-    const outputDict = {
+    const codeRunners = {
         python: runPython,
         java: runJava,
         c: runCpp,
         cpp: runCpp,
         csharp: runCsharp,
-        javascript: runJavascript,
         r: runR,
         go: runGo,
     };
 
     let outputs = [];
+
     for (const i of inputs) {
-        // write input to file
-        fs.writeFileSync(`${filePath}/inputs.txt`, i.input);
-        // run code and push output to qf object
-        const pipedInput = `< ${filePath}/inputs.txt`;
+        if (language === ProgrammingLanguage.javascript) {
+            const sandbox = {
+                ...options.sandbox,
+                input: () => i.input,
+            };
 
-        let { stdout } = await outputDict[language]({
-            code,
-            filePath,
-            pipedInput,
-        });
+            const result = await runJavascript({
+                code,
+                filePath,
+                sandbox,
+                external,
+                expression,
+            });
+            outputs.push(result.result.replace(/\n+$/, ""));
+        } else {
+            // write input to file
+            fs.writeFileSync(`${filePath}/inputs.txt`, i.input);
+            // run code and push output to qf object
+            const pipedInput = `< ${filePath}/inputs.txt`;
 
-        // in R, the standard output print the line number so we need to delete that
-        if (language === ProgrammingLanguage.r) {
-            stdout = stdout.replace(/\[.*]\s/i, "");
+            let { stdout } = await codeRunners[language]({
+                code,
+                filePath,
+                pipedInput,
+            });
+
+            // in R, the standard output print the line number so we need to delete that
+            if (language === ProgrammingLanguage.r) {
+                stdout = stdout.replace(/\[.*]\s/i, "");
+            }
+
+            outputs.push(stdout.replace(/\n+$/, ""));
+            // remove input file
+            await runCommand(`rm ${filePath}/inputs.txt`);
         }
-
-        outputs.push(stdout.replace(/\n+$/, ""));
-        // remove input file
-        await runCommand(`rm ${filePath}/inputs.txt`);
     }
     data.outputs = outputs;
     return { resultData: data, resultLog: log, resultCode: 0 };
@@ -114,14 +133,6 @@ async function runCsharp({ code, filePath, pipedInput }: RunCodeOptions) {
         await runCommand(`cd ${filePath} && dotnet build --nologo`);
     }
     return runCommand(`cd ${filePath} && dotnet run --nologo ${pipedInput}`);
-}
-
-async function runJavascript({ code, filePath, pipedInput }: RunCodeOptions) {
-    const path = `${filePath}/code.js`;
-    if (!fs.existsSync(path)) {
-        fs.writeFileSync(path, code);
-    }
-    return runCommand(`node ${path} ${pipedInput}`);
 }
 
 async function runR({ code, filePath, pipedInput }: RunCodeOptions) {

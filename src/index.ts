@@ -21,6 +21,9 @@ const app: express.Express = express();
 export interface PipelineStepExtraOptions extends PipelineStepOptions {
     log?: string[];
     code?: number;
+    sandbox?: any;
+    external?: string[];
+    expression?: boolean;
     localPath?: string;
     gitCacheCreationDateTime?: number;
 }
