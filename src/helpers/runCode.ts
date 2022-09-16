@@ -1,11 +1,9 @@
-import { ProgrammingLanguage } from "@quarterfall/core";
+import { ExitCode, ProgrammingLanguage } from "@quarterfall/core";
 import { runCommand } from "helpers/runCommand";
 import { runJavascript } from "helpers/runJavascript";
 import { PipelineStepExtraOptions } from "index";
-import ts = require("typescript");
 import fs = require("fs");
 import location = require("path");
-import lodash = require("lodash");
 
 export interface RunCodeOptions {
     code: string;
@@ -13,41 +11,40 @@ export interface RunCodeOptions {
     pipedInput?: string;
 }
 
-export async function run_code(
+export async function runCode(
     data: any,
     requestId: string,
     options: PipelineStepExtraOptions
 ): Promise<{ resultData: any; resultLog?: string[]; resultCode: number }> {
-    const { language, log, expression, external } = options;
-    const code = (data.code || data.embeddedAnswer || data.answer) as string;
-    const inputs = data.inputs || [{ input: "" }];
+    const {
+        language,
+        log,
+        expression,
+        external,
+        inputs = [{ input: "" }],
+    } = options;
+    const code = options.code || data.embeddedAnswer || data.answer;
 
-    if (!language || !code) {
+    if (!code) {
         log.push(
             "No programming language or code has been sent in the request body."
         );
-        return { resultData: data, resultLog: log, resultCode: 1 };
+        return {
+            resultData: data,
+            resultLog: log,
+            resultCode: ExitCode.UserError,
+        };
     }
 
     const filePath = `./${requestId}/run_code/${language}`;
     fs.mkdirSync(filePath, { recursive: true });
-
-    const codeRunners = {
-        python: runPython,
-        java: runJava,
-        c: runCpp,
-        cpp: runCpp,
-        csharp: runCsharp,
-        r: runR,
-        go: runGo,
-    };
 
     let outputs = [];
 
     for (const i of inputs) {
         if (language === ProgrammingLanguage.javascript) {
             const sandbox = {
-                ...options.sandbox,
+                ...options?.sandbox,
                 input: () => i.input,
             };
 
@@ -60,6 +57,15 @@ export async function run_code(
             });
             outputs.push(result.result.replace(/\n+$/, ""));
         } else {
+            const codeRunners = {
+                python: runPython,
+                java: runJava,
+                c: runCpp,
+                cpp: runCpp,
+                csharp: runCsharp,
+                r: runR,
+                go: runGo,
+            };
             // write input to file
             fs.writeFileSync(`${filePath}/inputs.txt`, i.input);
             // run code and push output to qf object

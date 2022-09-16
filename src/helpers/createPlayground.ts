@@ -1,3 +1,4 @@
+import { log } from "./logger";
 import { runCommand } from "./runCommand";
 import { runScript } from "./runScript";
 import fs = require("fs");
@@ -24,12 +25,12 @@ export async function createPlayground(options: CreatePlaygroundOptions) {
         forceOverrideCache = false,
         localPath,
         requestId,
-        log,
+        log: exitLog,
     } = options;
 
     // Copy local files for unit test action
     if (!gitUrl) {
-        console.log(`[${requestId}] Making local path copy...`);
+        log.debug(`[${requestId}] Making local path copy...`);
         // we're dealing with a local path
         const path = `static/${localPath}`;
         if (!fs.existsSync(path)) {
@@ -42,7 +43,7 @@ export async function createPlayground(options: CreatePlaygroundOptions) {
         return;
     }
 
-    console.log(`[${requestId}] Retrieving git repository...`);
+    log.debug(`[${requestId}] Retrieving git repository...`);
 
     const cacheFolderName = Buffer.from(
         `${gitUrl}_${gitBranch}_${gitPath}`
@@ -77,7 +78,7 @@ export async function createPlayground(options: CreatePlaygroundOptions) {
         // Before creating the cache store the time in a variable
         gitCacheCreationDateTime = Date.now();
 
-        console.log(`[${requestId}] Cloning git repository to cache...`);
+        log.debug(`[${requestId}] Cloning git repository to cache...`);
 
         // Clone git repo to cache
         await runCommand(command);
@@ -85,19 +86,19 @@ export async function createPlayground(options: CreatePlaygroundOptions) {
         // run the install script
         if (fs.existsSync(`./${cacheFolderName}/${gitPath}/install.sh`)) {
             // run the install script
-            console.log(`[${requestId}] Running install script...`);
+            log.debug(`[${requestId}] Running install script...`);
             await runScript({
                 script: `./install.sh`,
                 cwd: `./${cacheFolderName}/${gitPath}`,
-                log,
+                log: exitLog,
             });
         } else {
             // there is no install script present
-            log.push("No install script was run.");
+            exitLog.push("No install script was run.");
         }
     }
 
-    console.log(`[${requestId}] Copying git cache to request path...`);
+    log.debug(`[${requestId}] Copying git cache to request path...`);
 
     if (!fs.existsSync(`${requestId}${localPath}`)) {
         await runCommand(`mkdir -p ${requestId}${localPath}`);
