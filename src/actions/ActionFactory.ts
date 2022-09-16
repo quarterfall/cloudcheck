@@ -1,16 +1,11 @@
 import {
+    CloudcheckActionResponse,
     CloudcheckActionType,
     ExitCode,
     PipelineStep,
 } from "@quarterfall/core";
 import { runJavascript } from "helpers/runJavascript";
 import { PipelineStepExtraOptions } from "index";
-
-export interface ActionResponse {
-    data?: any;
-    log: string[];
-    code: number;
-}
 
 export class ActionHandler {
     public actionType: CloudcheckActionType;
@@ -46,7 +41,7 @@ export class ActionHandler {
         return this.computedCondition;
     }
 
-    public async setup(): Promise<ActionResponse> {
+    public async setup(): Promise<CloudcheckActionResponse> {
         this.actionOptions.localPath = `/${this.actionType}/${this.actionOptions.language}`;
         return {
             log: [],
@@ -60,7 +55,7 @@ export class ActionHandler {
         data: any,
         requestId: string,
         languageData: any
-    ): Promise<ActionResponse> {
+    ): Promise<CloudcheckActionResponse> {
         return {
             data,
             log: [],
@@ -68,7 +63,7 @@ export class ActionHandler {
         };
     }
 
-    public async tearDown(): Promise<ActionResponse> {
+    public async tearDown(): Promise<CloudcheckActionResponse> {
         return {
             log: [],
             code: ExitCode.NoError,

@@ -1,10 +1,14 @@
-import { ExitCode, supportedLanguagesIOTesting } from "@quarterfall/core";
+import {
+    CloudcheckActionResponse,
+    ExitCode,
+    supportedLanguagesIOTesting,
+} from "@quarterfall/core";
 
 import { runCode } from "helpers/runCode";
 import { runJavascript } from "helpers/runJavascript";
 
 import { log } from "helpers/logger";
-import { ActionHandler, ActionResponse } from "./ActionFactory";
+import { ActionHandler } from "./ActionFactory";
 import Handlebars = require("handlebars");
 
 export class RunCodeAction extends ActionHandler {
@@ -12,7 +16,7 @@ export class RunCodeAction extends ActionHandler {
         data: any,
         requestId: string,
         languageData: any
-    ): Promise<ActionResponse> {
+    ): Promise<CloudcheckActionResponse> {
         const {
             answerEmbedding = "{{answer}}",
             language,

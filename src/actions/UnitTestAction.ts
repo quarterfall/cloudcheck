@@ -1,4 +1,5 @@
 import {
+    CloudcheckActionResponse,
     ExitCode,
     ProgrammingLanguage,
     supportedLanguagesUnitTesting,
@@ -6,7 +7,7 @@ import {
 import { createPlayground } from "helpers/createPlayground";
 import { log } from "helpers/logger";
 import { runScript } from "helpers/runScript";
-import { ActionHandler, ActionResponse } from "./ActionFactory";
+import { ActionHandler } from "./ActionFactory";
 import fs = require("fs");
 import Handlebars = require("handlebars");
 
@@ -15,7 +16,7 @@ export class UnitTestAction extends ActionHandler {
         data: any,
         requestId: string,
         languageData: any
-    ): Promise<ActionResponse> {
+    ): Promise<CloudcheckActionResponse> {
         const {
             answerEmbedding = "{{answer}}",
             imports = "",

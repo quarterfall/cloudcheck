@@ -1,8 +1,8 @@
-import { ExitCode } from "@quarterfall/core";
+import { CloudcheckActionResponse, ExitCode } from "@quarterfall/core";
 import { createPlayground } from "helpers/createPlayground";
 import { log } from "helpers/logger";
 import { runScript } from "helpers/runScript";
-import { ActionHandler, ActionResponse } from "./ActionFactory";
+import { ActionHandler } from "./ActionFactory";
 import fs = require("fs");
 
 let gitCacheCreationDateTime = Date.now();
@@ -12,7 +12,7 @@ export class GitAction extends ActionHandler {
         data: any,
         requestId: string,
         _languageData: any
-    ): Promise<ActionResponse> {
+    ): Promise<CloudcheckActionResponse> {
         const { gitUrl, gitBranch, gitPrivateKey, gitPath, localPath } =
             this.actionOptions;
 

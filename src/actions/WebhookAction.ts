@@ -1,6 +1,6 @@
-import { ExitCode } from "@quarterfall/core";
+import { CloudcheckActionResponse, ExitCode } from "@quarterfall/core";
 import Axios, { AxiosResponse } from "axios";
-import { ActionHandler, ActionResponse } from "./ActionFactory";
+import { ActionHandler } from "./ActionFactory";
 
 export class WebhookAction extends ActionHandler {
     public async run(data: any, _requestId: string, _languageData: any) {
@@ -12,10 +12,10 @@ export class WebhookAction extends ActionHandler {
         }
 
         // call the webhookUrl with the required data
-        const result = await Axios.post<unknown, AxiosResponse<ActionResponse>>(
-            webhookUrl,
-            data
-        );
+        const result = await Axios.post<
+            unknown,
+            AxiosResponse<CloudcheckActionResponse>
+        >(webhookUrl, data);
 
         // return the feedback
         return { data: result.data, log: [], code: ExitCode.NoError };
