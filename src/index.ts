@@ -150,33 +150,31 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
         ) {
             break;
         }
-        log.debug(
-            `Tearing down actions for pipeline with requestId ${requestId}.`
-        );
-
-        await Promise.all(
-            actionHandlers.map((handler) =>
-                (async () => {
-                    const tearDownResult = await handler.tearDown();
-                    feedbackLog.push(...tearDownResult.log);
-                    feedbackCode = Math.max(feedbackCode, tearDownResult.code);
-                })()
-            )
-        );
-        // cleanup
-        if (cleanup) {
-            await runCommand(`rm -rf ${requestId}*`);
-        }
-        // send back the data
-        const diff = Date.now() - startTime;
-        log.debug(`Completed cloud compile request: ${requestId} [${diff}ms].`);
-        const statusCode = feedbackCode === ExitCode.NoError ? 200 : 400;
-        res.status(statusCode).send({
-            data,
-            log: feedbackLog.map((entry) => entry.trim()),
-            code: feedbackCode,
-        });
     }
+    log.debug(`Tearing down actions for pipeline with requestId ${requestId}.`);
+
+    await Promise.all(
+        actionHandlers.map((handler) =>
+            (async () => {
+                const tearDownResult = await handler.tearDown();
+                feedbackLog.push(...tearDownResult.log);
+                feedbackCode = Math.max(feedbackCode, tearDownResult.code);
+            })()
+        )
+    );
+    // cleanup
+    if (cleanup) {
+        await runCommand(`rm -rf ${requestId}*`);
+    }
+    // send back the data
+    const diff = Date.now() - startTime;
+    log.debug(`Completed cloud compile request: ${requestId} [${diff}ms].`);
+    const statusCode = feedbackCode === ExitCode.NoError ? 200 : 400;
+    res.status(statusCode).send({
+        data,
+        log: feedbackLog.map((entry) => entry.trim()),
+        code: feedbackCode,
+    });
 };
 
 (async function bootstrap() {

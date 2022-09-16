@@ -18,7 +18,7 @@ export async function runCode(
 ): Promise<{ resultData: any; resultLog?: string[]; resultCode: number }> {
     const {
         language,
-        log,
+        log = [],
         expression,
         external,
         inputs = [{ input: "" }],
@@ -47,7 +47,6 @@ export async function runCode(
                 ...options?.sandbox,
                 input: () => i.input,
             };
-
             const result = await runJavascript({
                 code,
                 filePath,
@@ -66,6 +65,7 @@ export async function runCode(
                 r: runR,
                 go: runGo,
             };
+
             // write input to file
             fs.writeFileSync(`${filePath}/inputs.txt`, i.input);
             // run code and push output to qf object
