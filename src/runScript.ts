@@ -26,7 +26,7 @@ export async function runScript(options: RunScriptOptions) {
         // set default values
         options = Object.assign(
             {
-                timeout: 30000,
+                timeout: 90 * 1000,
             },
             options
         );
