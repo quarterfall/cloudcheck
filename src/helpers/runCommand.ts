@@ -6,7 +6,7 @@ export async function runCommand(
 ): Promise<{ stdout: string; stderr: string }> {
     options = Object.assign(
         {
-            timeout: 30 * 1000, // maximum time the script is allowed to run (default 30 seconds)
+            timeout: 90 * 1000, // maximum time the script is allowed to run (default 30 seconds)
         },
         options
     );

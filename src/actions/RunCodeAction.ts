@@ -48,11 +48,11 @@ export class RunCodeAction extends ActionHandler {
 
         //Run
 
-        const { resultData, resultCode, resultLog } = await runCode(
-            data,
-            requestId,
-            this.actionOptions
-        );
+        const {
+            data: resultData,
+            log: resultLog,
+            code: resultCode,
+        } = await runCode(data, requestId, this.actionOptions);
 
         // generate io test feedback if needed
         if (!hideFeedback) {

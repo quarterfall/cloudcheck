@@ -1,5 +1,6 @@
 import express = require("express");
 import {
+    CloudcheckActionResponse,
     CloudcheckActionType,
     CloudcheckRequestBody,
     ExitCode,
@@ -73,8 +74,8 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
     const startTime = Date.now();
     log.debug(`Cloud check request id: ${requestId}.`);
 
-    let feedbackLog: string[] = data.log || [];
-    let feedbackCode: number = ExitCode.NoError;
+    let pipelineLog: string[] = data.log || [];
+    let pipelineExitCode: number = ExitCode.NoError;
 
     log.debug(
         `Creating action handlers for pipeline with requestId ${requestId}.`
@@ -89,8 +90,8 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
         actionHandlers.map((handler) =>
             (async () => {
                 const setupResult = await handler.setup();
-                feedbackLog.push(...setupResult.log);
-                feedbackCode = Math.max(feedbackCode, setupResult.code);
+                pipelineLog.push(...setupResult.log);
+                pipelineExitCode = Math.max(pipelineExitCode, setupResult.code);
             })()
         )
     );
@@ -99,7 +100,7 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
     for (const handler of actionHandlers) {
         log.debug(`Starting action [${handler.actionType}].`);
 
-        feedbackLog.push(`*** Starting action [${handler.actionType}]. ***`);
+        pipelineLog.push(`*** Starting action [${handler.actionType}]. ***`);
         // verify whether the condition holds
         try {
             if (
@@ -109,11 +110,11 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
                 continue;
             }
         } catch (error) {
-            feedbackLog.push(error.toString());
-            feedbackLog.push(
+            pipelineLog.push(error.toString());
+            pipelineLog.push(
                 `Unable to evaluate condition [${handler.actionOptions.condition}].`
             );
-            feedbackCode = ExitCode.UserError;
+            pipelineExitCode = ExitCode.UserError;
 
             log.debug(
                 `Unable to evaluate condition [${handler.actionOptions.condition}].`,
@@ -130,16 +131,30 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
             data.score = result.result;
         }
 
-        // run the action
-        const actionResult = await handler.run(
+        let actionResult: CloudcheckActionResponse = {
             data,
-            requestId,
-            handler.actionOptions.languageData || {}
-        );
+            log: pipelineLog,
+            code: pipelineExitCode,
+        };
+        try {
+            // run the action
+            actionResult = await handler.run(
+                data,
+                requestId,
+                handler.actionOptions.languageData || {}
+            );
+            pipelineLog.push(...actionResult.log);
+            pipelineExitCode = Math.max(pipelineExitCode, actionResult.code);
+        } catch (error) {
+            pipelineLog.push(error.toString());
+            pipelineExitCode = ExitCode.InternalError;
+            log.error(error);
+            break;
+        }
+
         data = actionResult.data;
-        feedbackLog.push(...actionResult.log);
-        feedbackCode = Math.max(feedbackCode, actionResult.code);
-        feedbackLog.push(`*** Finished action [${handler.actionType}]. ***`);
+
+        pipelineLog.push(`*** Finished action [${handler.actionType}]. ***`);
 
         log.debug(`Finished action [${handler.actionType}].`);
 
@@ -157,8 +172,11 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
         actionHandlers.map((handler) =>
             (async () => {
                 const tearDownResult = await handler.tearDown();
-                feedbackLog.push(...tearDownResult.log);
-                feedbackCode = Math.max(feedbackCode, tearDownResult.code);
+                pipelineLog.push(...tearDownResult.log);
+                pipelineExitCode = Math.max(
+                    pipelineExitCode,
+                    tearDownResult.code
+                );
             })()
         )
     );
@@ -169,11 +187,10 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
     // send back the data
     const diff = Date.now() - startTime;
     log.debug(`Completed cloud compile request: ${requestId} [${diff}ms].`);
-    const statusCode = feedbackCode === ExitCode.NoError ? 200 : 400;
-    res.status(statusCode).send({
+    res.status(200).send({
         data,
-        log: feedbackLog.map((entry) => entry.trim()),
-        code: feedbackCode,
+        log: pipelineLog.map((entry) => entry.trim()),
+        code: pipelineExitCode,
     });
 };
 

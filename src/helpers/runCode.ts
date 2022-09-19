@@ -15,24 +15,26 @@ export async function runCode(
     data: any,
     requestId: string,
     options: PipelineStepExtraOptions
-): Promise<{ resultData: any; resultLog?: string[]; resultCode: number }> {
+): Promise<{ data: any; log?: string[]; code: number }> {
     const {
         language,
-        log = [],
         expression,
         external,
         inputs = [{ input: "" }],
     } = options;
-    const code = options.code || data.embeddedAnswer || data.answer;
+    const codeSnippet = options.code || data.embeddedAnswer || data.answer;
 
-    if (!code) {
+    let code = ExitCode.NoError;
+    let log: string[] = [];
+
+    if (!codeSnippet) {
         log.push(
             "No programming language or code has been sent in the request body."
         );
         return {
-            resultData: data,
-            resultLog: log,
-            resultCode: ExitCode.UserError,
+            data,
+            log,
+            code: ExitCode.UserError,
         };
     }
 
@@ -42,53 +44,58 @@ export async function runCode(
     let outputs = [];
 
     for (const i of inputs) {
-        if (language === ProgrammingLanguage.javascript) {
-            const sandbox = {
-                ...options?.sandbox,
-                input: () => i.input,
-            };
-            const result = await runJavascript({
-                code,
-                filePath,
-                sandbox,
-                external,
-                expression,
-            });
-            outputs.push(result.result.replace(/\n+$/, ""));
-        } else {
-            const codeRunners = {
-                python: runPython,
-                java: runJava,
-                c: runCpp,
-                cpp: runCpp,
-                csharp: runCsharp,
-                r: runR,
-                go: runGo,
-            };
+        const codeRunners = {
+            python: runPython,
+            java: runJava,
+            c: runCpp,
+            cpp: runCpp,
+            csharp: runCsharp,
+            r: runR,
+            go: runGo,
+            javascript: runJavascript,
+        };
 
-            // write input to file
-            fs.writeFileSync(`${filePath}/inputs.txt`, i.input);
-            // run code and push output to qf object
-            const pipedInput = `< ${filePath}/inputs.txt`;
+        const sandbox = {
+            ...options?.sandbox,
+            input: () => i.input,
+        };
 
-            let { stdout } = await codeRunners[language]({
-                code,
-                filePath,
-                pipedInput,
-            });
+        // write input to file
+        fs.writeFileSync(`${filePath}/inputs.txt`, i.input);
+        // run code and push output to qf object
+        const pipedInput = `< ${filePath}/inputs.txt`;
 
-            // in R, the standard output print the line number so we need to delete that
-            if (language === ProgrammingLanguage.r) {
-                stdout = stdout.replace(/\[.*]\s/i, "");
-            }
+        let {
+            result,
+            log: exitLog,
+            code: exitCode,
+        }: {
+            result: string;
+            log: string[];
+            code: ExitCode;
+        } = await codeRunners[language]({
+            code: codeSnippet,
+            filePath,
+            pipedInput,
+            sandbox,
+            external,
+            expression,
+        });
 
-            outputs.push(stdout.replace(/\n+$/, ""));
-            // remove input file
-            await runCommand(`rm ${filePath}/inputs.txt`);
+        // in R, the standard output print the line number so we need to delete that
+        if (language === ProgrammingLanguage.r) {
+            result = result?.replace(/\[.*]\s/i, "");
         }
+
+        code = exitCode;
+        log.push(...exitLog);
+
+        outputs.push(result?.replace(/\n+$/, ""));
+        // remove input file
+        await runCommand(`rm ${filePath}/inputs.txt`);
     }
     data.outputs = outputs;
-    return { resultData: data, resultLog: log, resultCode: 0 };
+    return { data, log, code };
 }
 
 async function runPython(options: RunCodeOptions) {
@@ -97,7 +104,9 @@ async function runPython(options: RunCodeOptions) {
     if (!fs.existsSync(path)) {
         fs.writeFileSync(path, code);
     }
-    return runCommand(`python3 ${path} ${pipedInput}`);
+    return transformDataToBeReturned(
+        await runCommand(`python3 ${path} ${pipedInput}`)
+    );
 }
 
 async function runJava(options: RunCodeOptions) {
@@ -116,7 +125,9 @@ async function runJava(options: RunCodeOptions) {
             break;
         }
     }
-    return runCommand(`java -cp ${filePath} ${mainClassName} ${pipedInput}`);
+    return transformDataToBeReturned(
+        await runCommand(`java -cp ${filePath} ${mainClassName} ${pipedInput}`)
+    );
 }
 
 async function runCpp({ code, filePath, pipedInput }: RunCodeOptions) {
@@ -125,7 +136,9 @@ async function runCpp({ code, filePath, pipedInput }: RunCodeOptions) {
         fs.writeFileSync(path, code);
         await runCommand(`g++ -o ${filePath}/runCode ${path}`);
     }
-    return runCommand(`${filePath}/runCode ${pipedInput}`);
+    return transformDataToBeReturned(
+        await runCommand(`${filePath}/runCode ${pipedInput}`)
+    );
 }
 
 async function runCsharp({ code, filePath, pipedInput }: RunCodeOptions) {
@@ -138,7 +151,9 @@ async function runCsharp({ code, filePath, pipedInput }: RunCodeOptions) {
         fs.writeFileSync(path, code);
         await runCommand(`cd ${filePath} && dotnet build --nologo`);
     }
-    return runCommand(`cd ${filePath} && dotnet run --nologo ${pipedInput}`);
+    return transformDataToBeReturned(
+        await runCommand(`cd ${filePath} && dotnet run --nologo ${pipedInput}`)
+    );
 }
 
 async function runR({ code, filePath, pipedInput }: RunCodeOptions) {
@@ -146,7 +161,9 @@ async function runR({ code, filePath, pipedInput }: RunCodeOptions) {
     if (!fs.existsSync(path)) {
         fs.writeFileSync(path, code);
     }
-    return runCommand(`Rscript ${path} ${pipedInput}`);
+    return transformDataToBeReturned(
+        await runCommand(`Rscript ${path} ${pipedInput}`)
+    );
 }
 
 async function runGo({ code, filePath, pipedInput }: RunCodeOptions) {
@@ -154,5 +171,25 @@ async function runGo({ code, filePath, pipedInput }: RunCodeOptions) {
     if (!fs.existsSync(path)) {
         fs.writeFileSync(path, code);
     }
-    return runCommand(`go run ${path} ${pipedInput}`);
+    return transformDataToBeReturned(
+        await runCommand(`go run ${path} ${pipedInput}`)
+    );
+}
+
+function transformDataToBeReturned({
+    stdout,
+    stderr,
+}: {
+    stdout?: string;
+    stderr?: string;
+}): { result: string; log: string[]; code: ExitCode } {
+    let log: string[] = [];
+    let code = ExitCode.NoError;
+
+    if (stderr) {
+        log.push(stderr.toString());
+        code = ExitCode.InternalError;
+    }
+
+    return { result: stdout || "", log, code };
 }

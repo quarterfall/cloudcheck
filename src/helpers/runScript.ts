@@ -1,4 +1,3 @@
-import { ExitCode } from "@quarterfall/core";
 import { spawn } from "child_process";
 
 export interface RunScriptOptions {
@@ -14,7 +13,7 @@ export async function runScript(options: RunScriptOptions) {
         // set default values
         options = Object.assign(
             {
-                timeout: 30 * 1000,
+                timeout: 90 * 1000,
             },
             options
         );
@@ -55,7 +54,7 @@ export async function runScript(options: RunScriptOptions) {
                     process.kill(-child.pid, "SIGINT");
                 } catch (error) {
                     console.log(error);
-                    resolve(ExitCode.TimeoutError);
+                    reject(error);
                 }
             }, timeout);
 
