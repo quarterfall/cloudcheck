@@ -62,7 +62,7 @@ export class DatabaseAction extends ActionHandler {
                     "An error occurred while creating the database",
                     this.constructDbError(error),
                 ],
-                code: 1,
+                code: ExitCode.InternalError,
             };
         }
 
@@ -125,7 +125,7 @@ export class DatabaseAction extends ActionHandler {
                     "An error occurred while running the database action.",
                     this.constructDbError(error),
                 ],
-                code: 1,
+                code: ExitCode.InternalError,
             };
         }
 
@@ -134,7 +134,9 @@ export class DatabaseAction extends ActionHandler {
 
     public async tearDown() {
         // destroy the currently active database
-        await this.db.destroy();
+        if (this.db) {
+            await this.db.destroy();
+        }
 
         log.debug(`Dropping database with name ${this.databaseName}.`);
 
@@ -151,7 +153,7 @@ export class DatabaseAction extends ActionHandler {
                     "An error occurred while dropping the database.",
                     this.constructDbError(error),
                 ],
-                code: 1,
+                code: ExitCode.InternalError,
             };
         }
         return {

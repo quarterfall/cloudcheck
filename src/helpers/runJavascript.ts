@@ -23,7 +23,7 @@ export async function runJavascript(options: RunJavascriptCodeOptions) {
 
     // there is no code, so the result is empty
     if (!code) {
-        return { log, code: ExitCode.NoError };
+        return { result: null, log, code: ExitCode.NoError };
     }
 
     const functionWrap = expression
