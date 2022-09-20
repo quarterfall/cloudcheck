@@ -104,7 +104,7 @@ async function runPython(options: RunCodeOptions) {
     if (!fs.existsSync(path)) {
         fs.writeFileSync(path, code);
     }
-    return transformDataToBeReturned(
+    return transformDataShape(
         await runCommand(`python3 ${path} ${pipedInput}`)
     );
 }
@@ -125,7 +125,7 @@ async function runJava(options: RunCodeOptions) {
             break;
         }
     }
-    return transformDataToBeReturned(
+    return transformDataShape(
         await runCommand(`java -cp ${filePath} ${mainClassName} ${pipedInput}`)
     );
 }
@@ -136,7 +136,7 @@ async function runCpp({ code, filePath, pipedInput }: RunCodeOptions) {
         fs.writeFileSync(path, code);
         await runCommand(`g++ -o ${filePath}/runCode ${path}`);
     }
-    return transformDataToBeReturned(
+    return transformDataShape(
         await runCommand(`${filePath}/runCode ${pipedInput}`)
     );
 }
@@ -151,7 +151,7 @@ async function runCsharp({ code, filePath, pipedInput }: RunCodeOptions) {
         fs.writeFileSync(path, code);
         await runCommand(`cd ${filePath} && dotnet build --nologo`);
     }
-    return transformDataToBeReturned(
+    return transformDataShape(
         await runCommand(`cd ${filePath} && dotnet run --nologo ${pipedInput}`)
     );
 }
@@ -161,7 +161,7 @@ async function runR({ code, filePath, pipedInput }: RunCodeOptions) {
     if (!fs.existsSync(path)) {
         fs.writeFileSync(path, code);
     }
-    return transformDataToBeReturned(
+    return transformDataShape(
         await runCommand(`Rscript ${path} ${pipedInput}`)
     );
 }
@@ -171,12 +171,10 @@ async function runGo({ code, filePath, pipedInput }: RunCodeOptions) {
     if (!fs.existsSync(path)) {
         fs.writeFileSync(path, code);
     }
-    return transformDataToBeReturned(
-        await runCommand(`go run ${path} ${pipedInput}`)
-    );
+    return transformDataShape(await runCommand(`go run ${path} ${pipedInput}`));
 }
 
-function transformDataToBeReturned({
+function transformDataShape({
     stdout,
     stderr,
 }: {

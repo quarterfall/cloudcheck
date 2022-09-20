@@ -9,7 +9,7 @@
         "lint": "eslint 'src/**/*.ts'"
     },
     "dependencies": {
-        "@quarterfall/core": "^0.0.33",
+        "@quarterfall/core": "^0.0.34",
         "axios": "^0.27.2",
         "body-parser": "^1.19.0",
         "colors": "^1.4.0",

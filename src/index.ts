@@ -11,6 +11,7 @@ import { createActionHandler, registerAction } from "actions/ActionFactory";
 import { ConditionalTextAction } from "actions/ConditionalTextAction";
 import { DatabaseAction } from "actions/DatabaseAction";
 import { GitAction } from "actions/GitAction";
+import { QFAction } from "actions/QFAction";
 import { RunCodeAction } from "actions/RunCodeAction";
 import { UnitTestAction } from "actions/UnitTestAction";
 import { WebhookAction } from "actions/WebhookAction";
@@ -34,6 +35,7 @@ export interface PipelineStepExtraOptions extends PipelineStepOptions {
 
 function setupActions() {
     registerAction(CloudcheckActionType.run_code, RunCodeAction);
+    registerAction(CloudcheckActionType.qf, QFAction);
     registerAction(CloudcheckActionType.git, GitAction);
     registerAction(CloudcheckActionType.database, DatabaseAction);
     registerAction(

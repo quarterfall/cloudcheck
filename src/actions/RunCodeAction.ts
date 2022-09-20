@@ -64,7 +64,7 @@ export class RunCodeAction extends ActionHandler {
             for (const test of ioTests) {
                 const description = test.description || test.name;
                 // update here
-                if (resultCode !== 0) {
+                if (resultCode !== ExitCode.NoError) {
                     resultData.feedback.push(
                         `:x: ${
                             languageData.testErrorMessage ||
