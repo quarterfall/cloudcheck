@@ -16,6 +16,7 @@ export class DatabaseAction extends ActionHandler {
         const databaseDialect =
             this.actionOptions.databaseDialect || DatabaseDialect.mysql;
         const knexConfig = cloneDeep(config.database[databaseDialect]);
+        console.log(knexConfig);
         if (databaseName) {
             knexConfig.connection["database"] = databaseName;
         }
@@ -133,14 +134,11 @@ export class DatabaseAction extends ActionHandler {
     }
 
     public async tearDown() {
-        // destroy the currently active database
-        if (this.db) {
-            await this.db.destroy();
-        }
-
-        log.debug(`Dropping database with name ${this.databaseName}.`);
-
         try {
+            // destroy the currently active database
+            await this.db.destroy();
+
+            log.debug(`Dropping database with name ${this.databaseName}.`);
             // create a new connection to drop the database
             const knex = this.createDb();
             // destroy the database and close the connection
