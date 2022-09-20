@@ -16,7 +16,6 @@ export class DatabaseAction extends ActionHandler {
         const databaseDialect =
             this.actionOptions.databaseDialect || DatabaseDialect.mysql;
         const knexConfig = cloneDeep(config.database[databaseDialect]);
-        console.log(knexConfig);
         if (databaseName) {
             knexConfig.connection["database"] = databaseName;
         }
