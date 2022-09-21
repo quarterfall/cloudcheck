@@ -129,7 +129,7 @@ export class DatabaseAction extends ActionHandler {
             };
         }
 
-        return { data, log: ["Database action!"], code: ExitCode.NoError };
+        return { data, log: [], code: ExitCode.NoError };
     }
 
     public async tearDown() {

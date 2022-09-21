@@ -34,7 +34,7 @@ export async function runCode(
         return {
             data,
             log,
-            code: ExitCode.UserError,
+            code: ExitCode.InternalError,
         };
     }
 
@@ -177,16 +177,18 @@ async function runGo({ code, filePath, pipedInput }: RunCodeOptions) {
 function transformDataShape({
     stdout,
     stderr,
+    exitCode,
 }: {
     stdout?: string;
     stderr?: string;
+    exitCode?: ExitCode;
 }): { result: string; log: string[]; code: ExitCode } {
     let log: string[] = [];
-    let code = ExitCode.NoError;
+    let code = exitCode || ExitCode.NoError;
 
     if (stderr) {
+        console.log(stderr);
         log.push(stderr.toString());
-        code = ExitCode.InternalError;
     }
 
     return { result: stdout || "", log, code };

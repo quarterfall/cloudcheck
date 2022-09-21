@@ -115,11 +115,21 @@ export class UnitTestAction extends ActionHandler {
                     test.description ||
                     (test.isCode ? test.name : `\`${test.code}\``);
                 // update here
-                if (exitCode !== ExitCode.NoError) {
+                if (exitCode === ExitCode.InternalError) {
                     resultData.feedback.push(
                         `:x: ${
-                            languageData.testErrorMessage ||
+                            languageData.testInternalErrorMessage ||
                             "There was an error while running the tests"
+                        }`
+                    );
+                    break;
+                }
+
+                if (exitCode === ExitCode.TimeoutError) {
+                    resultData.feedback.push(
+                        `:x: ${
+                            languageData.testTimeoutErrorMessage ||
+                            "Timed out running the tests"
                         }`
                     );
                     break;

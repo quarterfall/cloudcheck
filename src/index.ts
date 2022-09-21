@@ -116,7 +116,7 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
             pipelineLog.push(
                 `Unable to evaluate condition [${handler.actionOptions.condition}].`
             );
-            pipelineExitCode = ExitCode.UserError;
+            pipelineExitCode = ExitCode.InternalError;
 
             log.debug(
                 `Unable to evaluate condition [${handler.actionOptions.condition}].`,

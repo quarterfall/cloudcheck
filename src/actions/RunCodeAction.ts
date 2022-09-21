@@ -63,12 +63,22 @@ export class RunCodeAction extends ActionHandler {
             );
             for (const test of ioTests) {
                 const description = test.description || test.name;
-                // update here
-                if (resultCode !== ExitCode.NoError) {
+
+                if (resultCode === ExitCode.InternalError) {
                     resultData.feedback.push(
                         `:x: ${
-                            languageData.testErrorMessage ||
+                            languageData.testInternalErrorMessage ||
                             "There was an error while running the tests"
+                        }`
+                    );
+                    break;
+                }
+
+                if (resultCode === ExitCode.TimeoutError) {
+                    resultData.feedback.push(
+                        `:x: ${
+                            languageData.testTimeoutErrorMessage ||
+                            "Timed out running the tests"
                         }`
                     );
                     break;
