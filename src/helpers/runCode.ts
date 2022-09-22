@@ -1,6 +1,5 @@
 import { ExitCode, ProgrammingLanguage } from "@quarterfall/core";
 import { runCommand } from "helpers/runCommand";
-import { runJavascript } from "helpers/runJavascript";
 import { PipelineStepExtraOptions } from "index";
 import fs = require("fs");
 import location = require("path");
@@ -16,12 +15,7 @@ export async function runCode(
     requestId: string,
     options: PipelineStepExtraOptions
 ): Promise<{ data: any; log?: string[]; code: number }> {
-    const {
-        language,
-        expression,
-        external,
-        inputs = [{ input: "" }],
-    } = options;
+    const { language, inputs = [{ input: "" }] } = options;
     const codeSnippet = options.code || data.embeddedAnswer || data.answer;
 
     let code = ExitCode.NoError;
@@ -52,12 +46,6 @@ export async function runCode(
             csharp: runCsharp,
             r: runR,
             go: runGo,
-            javascript: runJavascript,
-        };
-
-        const sandbox = {
-            ...options?.sandbox,
-            input: () => i.input,
         };
 
         // write input to file
@@ -77,14 +65,11 @@ export async function runCode(
             code: codeSnippet,
             filePath,
             pipedInput,
-            sandbox,
-            external,
-            expression,
         });
 
         // in R, the standard output print the line number so we need to delete that
         if (language === ProgrammingLanguage.r) {
-            result = result?.replace(/\[.*]\s/i, "");
+            result = result?.replace(/\[.*]\s/i, "").replace(/['"]+/g, "");
         }
 
         code = exitCode;

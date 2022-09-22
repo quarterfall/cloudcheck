@@ -5,7 +5,7 @@ export interface RunScriptOptions {
     script: string;
     cwd: string;
     log?: string[];
-    timeout?: number; // maximum time the script is allowed to run (default 30 seconds)
+    timeout?: number;
     env?: Record<string, string>; // any environment variables
 }
 

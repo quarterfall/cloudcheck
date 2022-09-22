@@ -4,7 +4,7 @@ import {
     ExitCode,
     PipelineStep,
 } from "@quarterfall/core";
-import { runJavascript } from "helpers/runJavascript";
+import { executeVMCode } from "helpers/executeVMCode";
 import { PipelineStepExtraOptions } from "index";
 
 export class ActionHandler {
@@ -19,14 +19,17 @@ export class ActionHandler {
         this.runAlways = runAlways;
     }
 
-    public async evaluateCondition(data: any): Promise<boolean> {
+    public async evaluateCondition(
+        data: any,
+        requestId: string
+    ): Promise<boolean> {
         const condition = this.actionOptions?.condition;
         if (!condition) {
             return true;
         }
 
         // execute the code in a sandbox
-        const result = await runJavascript({
+        const result = await executeVMCode({
             code: condition,
             sandbox: data,
             expression: true,

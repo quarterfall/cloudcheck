@@ -1,13 +1,13 @@
 import {
     CloudcheckActionResponse,
     ExitCode,
+    ProgrammingLanguage,
     supportedLanguagesIOTesting,
 } from "@quarterfall/core";
-
+import { executeVMCode } from "helpers/executeVMCode";
+import { log } from "helpers/logger";
 import { runCode } from "helpers/runCode";
 import { runJavascript } from "helpers/runJavascript";
-
-import { log } from "helpers/logger";
 import { ActionHandler } from "./ActionFactory";
 import Handlebars = require("handlebars");
 
@@ -22,6 +22,10 @@ export class RunCodeAction extends ActionHandler {
             language,
             hideFeedback,
             ioTests = [],
+            sandbox,
+            code,
+            inputs = [{ input: "" }],
+            external,
         } = this.actionOptions;
 
         if (supportedLanguagesIOTesting.indexOf(language) < 0) {
@@ -46,13 +50,42 @@ export class RunCodeAction extends ActionHandler {
         data.successfulTestCount = 0;
         data.failedTestCount = 0;
 
-        //Run
+        let resultData = data;
+        let resultLog: string[] = [];
+        let resultCode = ExitCode.NoError;
 
-        const {
-            data: resultData,
-            log: resultLog,
-            code: resultCode,
-        } = await runCode(data, requestId, this.actionOptions);
+        if (language === ProgrammingLanguage.javascript) {
+            resultData.outputs = [];
+            for (const input of inputs) {
+                const {
+                    data: resData,
+                    log: resLog,
+                    code: resCode,
+                } = await runJavascript({
+                    requestId,
+                    code,
+                    input,
+                    external,
+                    sandbox,
+                    resultData,
+                    resultCode,
+                    resultLog,
+                });
+
+                resultData = resData;
+                resultLog = resLog;
+                resultCode = resCode;
+            }
+        } else {
+            const {
+                data: resData,
+                log: resLog,
+                code: resCode,
+            } = await runCode(data, requestId, this.actionOptions);
+            resultData = resData;
+            resultLog = resLog;
+            resultCode = resCode;
+        }
 
         // generate io test feedback if needed
         if (!hideFeedback) {
@@ -97,7 +130,7 @@ export class RunCodeAction extends ActionHandler {
                         ""
                     )}`
                 );
-                const { result: ioTestResult } = await runJavascript({
+                const { result: ioTestResult } = await executeVMCode({
                     code: test.comparisonCode || "",
                     sandbox: {
                         desiredOutput: test.output || "",

@@ -11,14 +11,14 @@ import { createActionHandler, registerAction } from "actions/ActionFactory";
 import { ConditionalTextAction } from "actions/ConditionalTextAction";
 import { DatabaseAction } from "actions/DatabaseAction";
 import { GitAction } from "actions/GitAction";
-import { QFAction } from "actions/QFAction";
 import { RunCodeAction } from "actions/RunCodeAction";
+import { ScoringAction } from "actions/ScoringAction";
 import { UnitTestAction } from "actions/UnitTestAction";
 import { WebhookAction } from "actions/WebhookAction";
 import "dotenv/config";
+import { executeVMCode } from "helpers/executeVMCode";
 import { log } from "helpers/logger";
 import { runCommand } from "helpers/runCommand";
-import { runJavascript } from "helpers/runJavascript";
 import bodyParser = require("body-parser");
 
 // whether files should be removed from dist folder
@@ -35,13 +35,13 @@ export interface PipelineStepExtraOptions extends PipelineStepOptions {
 
 function setupActions() {
     registerAction(CloudcheckActionType.run_code, RunCodeAction);
-    registerAction(CloudcheckActionType.qf, QFAction);
-    registerAction(CloudcheckActionType.git, GitAction);
-    registerAction(CloudcheckActionType.database, DatabaseAction);
     registerAction(
         CloudcheckActionType.conditional_text,
         ConditionalTextAction
     );
+    registerAction(CloudcheckActionType.scoring, ScoringAction);
+    registerAction(CloudcheckActionType.git, GitAction);
+    registerAction(CloudcheckActionType.database, DatabaseAction);
     registerAction(CloudcheckActionType.unit_test, UnitTestAction);
     registerAction(CloudcheckActionType.webhook, WebhookAction);
 }
@@ -106,7 +106,7 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
         // verify whether the condition holds
         try {
             if (
-                !(await handler.evaluateCondition(data)) &&
+                !(await handler.evaluateCondition(data, requestId)) &&
                 !handler.runAlways
             ) {
                 continue;
@@ -126,7 +126,7 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
         }
 
         if (handler.actionOptions.scoreExpression) {
-            const result = await runJavascript({
+            const result = await executeVMCode({
                 code: `return ${handler.actionOptions.scoreExpression}`,
                 sandbox: { score: data.score },
             });
