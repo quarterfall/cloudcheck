@@ -20,7 +20,7 @@ export async function createPlayground(options: CreatePlaygroundOptions) {
         gitUrl,
         gitBranch = "master",
         gitPrivateKey,
-        gitPath,
+        gitPath = ".",
         gitCacheCreationDateTime,
         forceOverrideCache = false,
         localPath,
