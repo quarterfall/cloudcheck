@@ -127,8 +127,9 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
 
         if (handler.actionOptions.scoreExpression) {
             const result = await executeVMCode({
-                code: `return ${handler.actionOptions.scoreExpression}`,
+                code: handler.actionOptions.scoreExpression,
                 sandbox: { score: data.score },
+                expression: true,
             });
             data.score = result.result;
         }

@@ -40,6 +40,7 @@ export async function executeVMCode(options: ExecuteVMCodeOptions) {
         require: {
             external,
         },
+        timeout: 30 * 1000,
     });
 
     // catch console logs, warnings and errors

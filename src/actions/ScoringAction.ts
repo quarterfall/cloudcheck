@@ -1,3 +1,4 @@
+import { ExitCode } from "@quarterfall/core";
 import { executeVMCode } from "helpers/executeVMCode";
 import { ActionHandler } from "./ActionFactory";
 
@@ -7,7 +8,7 @@ export class ScoringAction extends ActionHandler {
 
         // there is no feedback text, so ignore this action
         if (!textOnMatch) {
-            return { data, log: [], code: 0, score: 0 };
+            return { data, log: [], code: ExitCode.NoError, score: 0 };
         }
 
         // add the feedback to the data
@@ -16,8 +17,9 @@ export class ScoringAction extends ActionHandler {
 
         //compute grade
         const result = await executeVMCode({
-            code: `return ${scoreExpression}`,
+            code: scoreExpression,
             sandbox: { score: data.score },
+            expression: true,
         });
 
         // return the updated data

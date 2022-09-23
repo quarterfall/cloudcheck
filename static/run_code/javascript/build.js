@@ -47,12 +47,11 @@ if (sandbox) {
     }
 }
 
-template = template.split("/// {{VARIABLES}}").join(variables);
+template = template.split("/// {{VARIABLES}}").join(variables.join(";\n"));
 
+let codeString = code || qf.embeddedAnswer || qf.answer;
 // insert the function into the template
-template = template
-    .split("/// {{CODE}}")
-    .join(code || qf.embeddedAnswer || qf.answer);
+template = template.split("/// {{CODE}}").join(codeString);
 
 // store the template as a test file
 fs.writeFileSync("code.js", template);
