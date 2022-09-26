@@ -2,4 +2,4 @@
 echo "public class Answer { $answer }" > ./src/Answer.cs
 
 # run the unit tests
-cd src && dotnet run
+cd src && dotnet run --nologo

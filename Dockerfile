@@ -59,6 +59,12 @@ RUN add-apt-repository 'deb http://cloud.r-project.org/bin/linux/debian bullseye
 RUN apt-get update
 RUN apt-get install -y r-base r-base-dev
 
+#install Go library
+RUN add-apt-repository -r ppa:longsleep/golang-backports
+RUN apt-get update
+RUN apt-get install -y golang-go
+RUN go version
+
 # Define and expose the port
 EXPOSE $PORT
 

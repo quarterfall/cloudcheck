@@ -1,24 +1,12 @@
-import { exec, spawn } from "child_process";
+import { ExitCode } from "@quarterfall/core";
+import { spawn } from "child_process";
 
 export interface RunScriptOptions {
     script: string;
     cwd: string;
     log?: string[];
-    timeout?: number; // maximum time the script is allowed to run (default 30 seconds)
+    timeout?: number;
     env?: Record<string, string>; // any environment variables
-}
-
-export async function runCommand(
-    command: string
-): Promise<{ stdout: string; stderr: string }> {
-    return new Promise((resolve, reject) => {
-        exec(command, (error, stdout, stderr) => {
-            if (error) {
-                reject(error);
-            }
-            resolve({ stdout, stderr });
-        });
-    });
 }
 
 export async function runScript(options: RunScriptOptions) {
@@ -26,12 +14,12 @@ export async function runScript(options: RunScriptOptions) {
         // set default values
         options = Object.assign(
             {
-                timeout: 30000,
+                timeout: 90 * 1000,
             },
             options
         );
         const { script, cwd, log = [], timeout, env } = options;
-        let processTimeout;
+        let processTimeout: NodeJS.Timeout;
 
         try {
             // run the script with the directory as the working directory
@@ -39,13 +27,8 @@ export async function runScript(options: RunScriptOptions) {
                 cwd,
                 env,
                 detached: true,
+                timeout,
             });
-
-            // kill the process after the timeout occurs
-            processTimeout = setTimeout(() => {
-                console.log(`Killing process after timeout.`);
-                process.kill(-child.pid, "SIGINT");
-            }, timeout);
 
             // buffered output
             let lineBuffer = "";
@@ -64,6 +47,17 @@ export async function runScript(options: RunScriptOptions) {
                 // set the line buffer to be the last line
                 lineBuffer = lines[lines.length - 1];
             };
+
+            // kill the process after the timeout occurs
+            processTimeout = setTimeout(() => {
+                try {
+                    console.log(`Killing process after timeout.`);
+                    process.kill(-child.pid, "SIGINT");
+                    resolve(ExitCode.TimeoutError);
+                } catch (error) {
+                    reject(error);
+                }
+            }, timeout);
 
             // pass along any output
             child.stdout.setEncoding("utf8");

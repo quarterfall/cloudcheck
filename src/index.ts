@@ -1,8 +1,24 @@
 import express = require("express");
+import {
+    CloudcheckActionResponse,
+    CloudcheckActionType,
+    CloudcheckRequestBody,
+    ExitCode,
+    generateId,
+    PipelineStepOptions,
+} from "@quarterfall/core";
+import { createActionHandler, registerAction } from "actions/ActionFactory";
+import { ConditionalTextAction } from "actions/ConditionalTextAction";
+import { DatabaseAction } from "actions/DatabaseAction";
+import { GitAction } from "actions/GitAction";
+import { RunCodeAction } from "actions/RunCodeAction";
+import { ScoringAction } from "actions/ScoringAction";
+import { UnitTestAction } from "actions/UnitTestAction";
+import { WebhookAction } from "actions/WebhookAction";
 import "dotenv/config";
-import { runCode } from "runCode";
-import { runCommand, runScript } from "./runScript";
-import fs = require("fs");
+import { executeVMCode } from "helpers/executeVMCode";
+import { log } from "helpers/logger";
+import { runCommand } from "helpers/runCommand";
 import bodyParser = require("body-parser");
 
 // whether files should be removed from dist folder
@@ -10,262 +26,199 @@ const cleanup = true;
 
 const app: express.Express = express();
 
-function generateRequestId(length = 24): string {
-    const chars = "abcdefghijklmnopqrstuvwxyz";
-    let str = "";
-    for (let i = 0; i < length; i += 1) {
-        str += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return str;
+export interface PipelineStepExtraOptions extends PipelineStepOptions {
+    log?: string[];
+    exitCode?: number;
+    localPath?: string;
+    gitCacheCreationDateTime?: number;
 }
 
-async function createPlayground(options: {
-    gitUrl: string;
-    gitBranch: string;
-    gitPrivateKey?: string;
-    path: string;
-    requestId: string;
-    log: string[];
-}) {
-    const {
-        gitUrl,
-        gitBranch = "master",
-        gitPrivateKey,
-        path,
-        requestId,
-        log,
-    } = options;
-
-    if (!gitUrl) {
-        console.log(`[${requestId}] Making local path copy...`);
-        // we're dealing with a local path
-        const localPath = `static/${path}`;
-        if (!fs.existsSync(localPath)) {
-            throw new Error(`No local path ${path} found.`);
-        }
-        // copy the local folder to the playground
-        fs.mkdirSync(`${requestId}/${path}`, { recursive: true });
-        await runCommand(`cp -r ${localPath}/. ${requestId}/${path}`);
-
-        // done!
-        return;
-    }
-
-    console.log(`[${requestId}] Retrieving git repository...`);
-    let command = `git clone -b ${gitBranch} --depth=1 ${gitUrl} ${requestId}`;
-    if (gitPrivateKey) {
-        // add missing LF if needed
-        let keyData = gitPrivateKey;
-        if (!/[\r\n]$/.test(keyData)) {
-            keyData += "\n";
-        }
-        // create a file containing the private key
-        const keyFilename = `./${requestId}_id_rsa`;
-        fs.writeFileSync(keyFilename, keyData, { mode: 0o600 });
-        // add the private key to the git command
-        command = `GIT_SSH_COMMAND='ssh -i ${keyFilename}' ${command}`;
-    }
-    await runCommand(command);
-
-    // run the install script
-    if (fs.existsSync(`./${requestId}/${path}/install.sh`)) {
-        // run the install script
-        console.log(`[${requestId}] Running install script...`);
-        await runScript({
-            script: `./install.sh`,
-            cwd: `./${requestId}/${path}`,
-            log,
-        });
-    } else {
-        // there is no install script present
-        log.push("No install script was run.");
-    }
+function setupActions() {
+    registerAction(CloudcheckActionType.run_code, RunCodeAction);
+    registerAction(
+        CloudcheckActionType.conditional_text,
+        ConditionalTextAction
+    );
+    registerAction(CloudcheckActionType.scoring, ScoringAction);
+    registerAction(CloudcheckActionType.git, GitAction);
+    registerAction(CloudcheckActionType.database, DatabaseAction);
+    registerAction(CloudcheckActionType.unit_test, UnitTestAction);
+    registerAction(CloudcheckActionType.webhook, WebhookAction);
 }
 
-const cloudCheck = async (req: express.Request, res: express.Response) => {
-    // verify that there is a request body and that it contains the required data
-    if (!req.body) {
+function setupTestWebhookUrl() {
+    app.post("/webhook_test", (request, response, next) => {
+        const data = request.body;
+        const feedback = request.query.feedback
+            ? (request.query.feedback as string).split(",")
+            : ["webhook_test_success"];
+        for (const feedbackItem of feedback) {
+            data[feedbackItem] = true;
+        }
+        response.status(200).send(data);
+    });
+}
+
+const cloudcheck = async (req: express.Request, res: express.Response) => {
+    let { data, pipeline }: CloudcheckRequestBody = req.body;
+
+    if (!data || !pipeline) {
         res.status(400).send("Missing request body.");
         return;
     }
 
-    const { gitUrl, gitBranch, gitPrivateKey, data } = req.body;
-    const path = (req.body.path || ".").replace(/^\/+|\/+$/g, ""); // set default path and remove leading and trailing slashes
-
     // generate a unique request id
-    const requestId = generateRequestId();
+    const requestId = generateId({
+        length: 24,
+        allowed: ["lowercaseLetters", "numbers"],
+    });
+
     const startTime = Date.now();
-    console.log(`Cloud check request id: ${requestId}.`);
+    log.debug(`Cloud check request id: ${requestId}.`);
 
-    const log: string[] = data.log || [];
+    let pipelineLog: string[] = data.log || [];
+    let pipelineExitCode: number = ExitCode.NoError;
 
-    try {
-        // prepare the cloud check playground
-        await createPlayground({
-            gitUrl,
-            gitBranch,
-            gitPrivateKey,
-            path,
-            requestId,
-            log,
-        });
+    log.debug(
+        `Creating action handlers for pipeline with requestId ${requestId}.`
+    );
+    const actionHandlers = pipeline.map((pipelineStep) =>
+        createActionHandler(pipelineStep)
+    );
+    log.debug(
+        `Setting up action handlers for pipeline with requestId ${requestId}.`
+    );
+    await Promise.all(
+        actionHandlers.map((handler) =>
+            (async () => {
+                const setupResult = await handler.setup();
+                pipelineLog.push(...setupResult.log);
+                pipelineExitCode = Math.max(pipelineExitCode, setupResult.code);
+            })()
+        )
+    );
+    log.debug(`Running actions for pipeline with requestId ${requestId}.`);
 
-        // run the cloud check script
-        let code;
+    for (const handler of actionHandlers) {
+        log.debug(`Starting action [${handler.actionType}].`);
 
-        if (fs.existsSync(`./${requestId}/${path}/run.sh`)) {
-            // write the qf object to a file in the directory
-            fs.writeFileSync(
-                `./${requestId}/${path}/qf.json`,
-                JSON.stringify(data || {})
-            );
-
-            // run the cloud check script, with the data in the qf object as environment variables
-            console.log(
-                `[${requestId}] Running cloud check script at path ${path}...`
-            );
-            code = await runScript({
-                script: "./run.sh",
-                cwd: `./${requestId}/${path}`,
-                log,
-                env: Object.assign({}, data || {}, process.env),
-            });
-        } else {
-            // there is no run script present
-            throw new Error("Unable to run Cloud check script.");
-        }
-
-        let resultData = {};
-
-        if (fs.existsSync(`./${requestId}/${path}/qf.json`)) {
-            // read the updated quarterfall object
-            const quarterfallUpdated = fs.readFileSync(
-                `./${requestId}/${path}/qf.json`
-            );
-            try {
-                resultData = JSON.parse(quarterfallUpdated.toString());
-            } catch (error) {
-                console.log(error);
+        pipelineLog.push(`*** Starting action [${handler.actionType}]. ***`);
+        // verify whether the condition holds
+        try {
+            if (
+                !(await handler.evaluateCondition(data, requestId)) &&
+                !handler.runAlways
+            ) {
+                continue;
             }
+        } catch (error) {
+            pipelineLog.push(error.toString());
+            pipelineLog.push(
+                `Unable to evaluate condition [${handler.actionOptions.condition}].`
+            );
+            pipelineExitCode = ExitCode.InternalError;
+
+            log.debug(
+                `Unable to evaluate condition [${handler.actionOptions.condition}].`,
+                error
+            );
+            break;
         }
 
-        // cleanup
-        if (cleanup) {
-            await runCommand(`rm -rf ${requestId}*`);
-        }
-        // send back the data
-        const diff = Date.now() - startTime;
-        console.log(
-            `Completed cloud compile request: ${requestId} [${diff}ms].`
-        );
-        res.send({
-            data: resultData,
-            log: log.map((entry) => entry.trim()),
-            code,
-        });
-    } catch (error) {
-        console.log(error);
-        log.push(error.message);
-
-        // cleanup
-        if (cleanup) {
-            await runCommand(`rm -rf ${requestId}*`);
-        }
-
-        res.send({
-            data,
-            log: log.map((entry) => entry.trim()),
-            code: 1,
-        });
-    }
-};
-
-const run = async (req: express.Request, res: express.Response) => {
-    // verify that there is a request body and that it contains the required data
-    if (!req.body) {
-        res.status(400).send("Missing request body.");
-        return;
-    }
-    const { data } = req.body;
-    let path = (req.body.path || ".").replace(/^\/+|\/+$/g, "");
-
-    // generate a unique request id
-    const requestId = generateRequestId();
-    const startTime = Date.now();
-    console.log(`Cloud check request id: ${requestId}.`);
-    const log: string[] = data.log || [];
-    // copy the local folder to the playground
-    const filePath = `${requestId}/${path}`;
-    fs.mkdirSync(filePath, { recursive: true });
-
-    let outputs = [];
-    try {
-        for (const i of data.inputs) {
-            // write input to file
-            fs.writeFileSync(`./${filePath}/inputs.txt`, i.input);
-            // run code and push output to qf object
-            const { stdout } = await runCode({
-                data,
-                filePath,
-                language: path,
-                args: [`< ./${filePath}/inputs.txt`],
+        if (handler.actionOptions.scoreExpression) {
+            const result = await executeVMCode({
+                code: handler.actionOptions.scoreExpression,
+                sandbox: { score: data.score },
+                expression: true,
             });
-            outputs.push(stdout.replace(/\n+$/, ""));
-            // remove input file
-            await runCommand(`rm ./${filePath}/inputs.txt`);
-        }
-        data.outputs = outputs;
-        // cleanup
-        if (cleanup) {
-            await runCommand(`rm -rf ${requestId}*`);
-        }
-        // send back the data
-        const diff = Date.now() - startTime;
-        console.log(
-            `Completed cloud compile request: ${requestId} [${diff}ms].`
-        );
-        res.send({
-            data,
-            log: log.map((entry) => entry.trim()),
-            code: 0,
-        });
-    } catch (error) {
-        console.log(error);
-        log.push(error.message);
-
-        // cleanup
-        if (cleanup) {
-            await runCommand(`rm -rf ${requestId}*`);
+            data.score = result.result;
         }
 
-        res.send({
+        let actionResult: CloudcheckActionResponse = {
             data,
-            log: log.map((entry) => entry.trim()),
-            code: 1,
-        });
+            log: pipelineLog,
+            code: pipelineExitCode,
+        };
+        try {
+            // run the action
+            actionResult = await handler.run(
+                data,
+                requestId,
+                handler.actionOptions.languageData || {}
+            );
+            pipelineLog.push(...actionResult.log);
+            pipelineExitCode = Math.max(pipelineExitCode, actionResult.code);
+        } catch (error) {
+            pipelineLog.push(error.toString());
+            pipelineExitCode = ExitCode.InternalError;
+            log.error(error);
+            break;
+        }
+
+        data = actionResult.data;
+
+        pipelineLog.push(`*** Finished action [${handler.actionType}]. ***`);
+
+        log.debug(`Finished action [${handler.actionType}].`);
+
+        // stop if a 'stop' field is set to true of if the stop on match option was set
+        if (
+            data.stop === true ||
+            (handler.computedCondition && handler.actionOptions.stopOnMatch)
+        ) {
+            break;
+        }
     }
+    log.debug(`Tearing down actions for pipeline with requestId ${requestId}.`);
+
+    await Promise.all(
+        actionHandlers.map((handler) =>
+            (async () => {
+                const tearDownResult = await handler.tearDown();
+                pipelineLog.push(...tearDownResult.log);
+                pipelineExitCode = Math.max(
+                    pipelineExitCode,
+                    tearDownResult.code
+                );
+            })()
+        )
+    );
+    // cleanup
+    if (cleanup) {
+        await runCommand(`rm -rf ${requestId}*`);
+    }
+    // send back the data
+    const diff = Date.now() - startTime;
+    log.debug(`Completed cloud compile request: ${requestId} [${diff}ms].`);
+    res.status(200).send({
+        data,
+        log: pipelineLog.map((entry) => entry.trim()),
+        code: pipelineExitCode,
+    });
 };
 
 (async function bootstrap() {
     // parse body of requests as JSON
     app.use(bodyParser.json());
 
-    app.get("/", (req, res) => res.send("CloudCheck server is running."));
+    setupActions();
+    setupTestWebhookUrl();
+
+    app.get("/", (_req, res) => res.send("Cloud check server is running."));
 
     // route definition
-    app.post("/", cloudCheck);
-    app.post("/run", run);
+    app.post("/", cloudcheck);
 
     // start the server
     const port = Number(process.env.PORT) || 2700;
     const server = app.listen(port, () => {
-        console.log("Cloud check server listening on port", port);
+        log.debug("Cloud check server listening on port", port);
     });
 
     // graceful shutdown of http server
     const gracefulShutdown = () => {
         server.close(() => {
-            console.log("Cloud check server server closed.");
+            log.debug("Cloud check server server closed.");
         });
     };
 

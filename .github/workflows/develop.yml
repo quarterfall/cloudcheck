@@ -10,6 +10,7 @@ env:
     GCS_ZONE: europe-west1-b
     APP_NAME: cloudcheck
     APP_ENV: devserver
+    ENV_DEVSERVER: ${{ secrets.ENV_DEVSERVER }}
 
 jobs:
     setup-build-publish-deploy:
@@ -42,7 +43,7 @@ jobs:
             # Prepare the environment
             - name: Prepare
               run: |
-                  echo "PORT=80" >> .env
+                  echo $ENV_DEVSERVER | base64 --decode > .env
                   export IMAGE_NAME=eu.gcr.io/${{ secrets.GCS_PROJECT }}/$APP_NAME.$APP_ENV
                   export IMAGE_NAME_DEPLOY=$IMAGE_NAME.$GITHUB_SHA.$(date +%s)
                   echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
