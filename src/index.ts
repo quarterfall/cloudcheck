@@ -13,7 +13,6 @@ import { DatabaseAction } from "actions/DatabaseAction";
 import { ExecuteVMCodeAction } from "actions/ExecuteVMCodeAction";
 import { GitAction } from "actions/GitAction";
 import { RunCodeAction } from "actions/RunCodeAction";
-import { ScoringAction } from "actions/ScoringAction";
 import { UnitTestAction } from "actions/UnitTestAction";
 import { WebhookAction } from "actions/WebhookAction";
 import "dotenv/config";
@@ -40,7 +39,6 @@ function setupActions() {
         CloudcheckActionType.conditional_text,
         ConditionalTextAction
     );
-    registerAction(CloudcheckActionType.scoring, ScoringAction);
     registerAction(CloudcheckActionType.git, GitAction);
     registerAction(CloudcheckActionType.database, DatabaseAction);
     registerAction(CloudcheckActionType.unit_test, UnitTestAction);
