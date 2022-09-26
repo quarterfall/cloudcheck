@@ -119,9 +119,11 @@ async function runCpp({ code, filePath, pipedInput }: RunCodeOptions) {
     const path = `${filePath}/code.cpp`;
     if (!fs.existsSync(path)) {
         fs.writeFileSync(path, code);
-        await runCommand(`g++ -o ${filePath} ${path}`);
+        await runCommand(`g++ -o ${filePath}/runCode ${path}`);
     }
-    return transformDataShape(await runCommand(`${filePath} ${pipedInput}`));
+    return transformDataShape(
+        await runCommand(`${filePath}/runCode ${pipedInput}`)
+    );
 }
 
 async function runCsharp({ code, filePath, pipedInput }: RunCodeOptions) {
