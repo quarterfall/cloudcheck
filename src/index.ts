@@ -10,6 +10,7 @@ import {
 import { createActionHandler, registerAction } from "actions/ActionFactory";
 import { ConditionalTextAction } from "actions/ConditionalTextAction";
 import { DatabaseAction } from "actions/DatabaseAction";
+import { ExecuteVMCodeAction } from "actions/ExecuteVMCodeAction";
 import { GitAction } from "actions/GitAction";
 import { RunCodeAction } from "actions/RunCodeAction";
 import { ScoringAction } from "actions/ScoringAction";
@@ -44,6 +45,7 @@ function setupActions() {
     registerAction(CloudcheckActionType.database, DatabaseAction);
     registerAction(CloudcheckActionType.unit_test, UnitTestAction);
     registerAction(CloudcheckActionType.webhook, WebhookAction);
+    registerAction(CloudcheckActionType.executeVMCode, ExecuteVMCodeAction);
 }
 
 function setupTestWebhookUrl() {

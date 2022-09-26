@@ -45,7 +45,11 @@ export class ActionHandler {
     }
 
     public async setup(): Promise<CloudcheckActionResponse> {
-        this.actionOptions.localPath = `/${this.actionType}/${this.actionOptions.language}`;
+        this.actionOptions.localPath =
+            `/${this.actionType}` +
+            (this.actionOptions.language
+                ? `/${this.actionOptions.language}`
+                : "");
         return {
             log: [],
             code: ExitCode.NoError,
