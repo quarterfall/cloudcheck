@@ -1,4 +1,4 @@
-name: Build and Deploy to GKE
+name: Build and Deploy to Cloudrun - Production
 
 on:
     push:
@@ -59,4 +59,4 @@ jobs:
               run: |
                   docker push $IMAGE_NAME_DEPLOY
                   docker push $IMAGE_NAME:latest
-                  kubectl --namespace=$APP_ENV set image deployment $APP_NAME $APP_NAME=$IMAGE_NAME_DEPLOY
+                  gcloud run deploy $APP_NAME-$APP_ENV --image $IMAGE_NAME --region europe-west1 --platform managed --quiet
