@@ -100,15 +100,43 @@ export class DatabaseAction extends ActionHandler {
                 data.feedback = data.feedback || [];
 
                 const queryFeedback: string[] = [];
-                for (const result of data.dbQueryResult) {
-                    if ((result?.command || "").toLowerCase() === "select") {
+
+                if (
+                    this.actionOptions.databaseDialect === DatabaseDialect.mysql
+                ) {
+                    const result = JSON.parse(
+                        JSON.stringify(data.dbQueryResult)
+                    );
+
+                    if (data.embeddedAnswer.toLowerCase().includes("select")) {
                         queryFeedback.push(
                             `\`\`\`table\n${JSON.stringify(
-                                this.generateFeedbackTableFromResult(result)
+                                this.generateFeedbackTableFromResult({
+                                    fields: result[1],
+                                    rows: result[0],
+                                })
                             )}\n\`\`\``
                         );
                     }
                 }
+
+                if (
+                    this.actionOptions.databaseDialect ===
+                    DatabaseDialect.postgresql
+                ) {
+                    for (const result of data.dbQueryResult) {
+                        if (
+                            (result?.command || "").toLowerCase() === "select"
+                        ) {
+                            queryFeedback.push(
+                                `\`\`\`table\n${JSON.stringify(
+                                    this.generateFeedbackTableFromResult(result)
+                                )}\n\`\`\``
+                            );
+                        }
+                    }
+                }
+
                 if (queryFeedback.length > 0) {
                     data.feedback.push(
                         `## ${
@@ -163,9 +191,13 @@ export class DatabaseAction extends ActionHandler {
         return {
             columns: result.fields.map((field) => ({
                 field: field.name,
+                headerName: field.name,
                 width: 150,
             })),
-            rows: result.rows.map((row, index) => ({ id: index + 1, ...row })),
+            rows: result.rows.map((row, index) => ({
+                id: index + 1,
+                ...row,
+            })),
         };
     }
 
