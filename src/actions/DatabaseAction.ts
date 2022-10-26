@@ -4,7 +4,7 @@ import { config } from "config";
 import { log } from "helpers/logger";
 import KnexDb, { Knex } from "knex";
 import schemaInspector from "knex-schema-inspector";
-import { cloneDeep, isArray } from "lodash";
+import { cloneDeep } from "lodash";
 import { ActionHandler } from "./ActionFactory";
 import Handlebars = require("handlebars");
 
@@ -90,30 +90,28 @@ export class DatabaseAction extends ActionHandler {
             data.dbInspector = schemaInspector(this.db);
 
             // now run the answer by the student
-            data.dbQueryResult = await this.db.raw(data.embeddedAnswer);
+            data.dbQueryResultRaw = await this.db.raw(data.embeddedAnswer);
 
-            // convert to an array
-            if (!isArray(data.dbQueryResult)) {
-                data.dbQueryResult = [data.dbQueryResult];
-            }
             if (!hideFeedback) {
                 data.feedback = data.feedback || [];
 
                 const queryFeedback: string[] = [];
 
+                const parsedDbQueryResult = JSON.parse(
+                    JSON.stringify(data.dbQueryResultRaw)
+                );
+
                 if (
                     this.actionOptions.databaseDialect === DatabaseDialect.mysql
                 ) {
-                    const result = JSON.parse(
-                        JSON.stringify(data.dbQueryResult)
-                    );
+                    data.dbQueryResult = parsedDbQueryResult[0];
 
                     if (data.embeddedAnswer.toLowerCase().includes("select")) {
                         queryFeedback.push(
                             `\`\`\`table\n${JSON.stringify(
                                 this.generateFeedbackTableFromResult({
-                                    fields: result[1],
-                                    rows: result[0],
+                                    fields: parsedDbQueryResult[1],
+                                    rows: parsedDbQueryResult[0],
                                 })
                             )}\n\`\`\``
                         );
@@ -124,16 +122,20 @@ export class DatabaseAction extends ActionHandler {
                     this.actionOptions.databaseDialect ===
                     DatabaseDialect.postgresql
                 ) {
-                    for (const result of data.dbQueryResult) {
-                        if (
-                            (result?.command || "").toLowerCase() === "select"
-                        ) {
-                            queryFeedback.push(
-                                `\`\`\`table\n${JSON.stringify(
-                                    this.generateFeedbackTableFromResult(result)
-                                )}\n\`\`\``
-                            );
-                        }
+                    data.dbQueryResult = parsedDbQueryResult.rows;
+
+                    if (
+                        (parsedDbQueryResult?.command || "").toLowerCase() ===
+                        "select"
+                    ) {
+                        queryFeedback.push(
+                            `\`\`\`table\n${JSON.stringify(
+                                this.generateFeedbackTableFromResult({
+                                    fields: parsedDbQueryResult.fields,
+                                    rows: parsedDbQueryResult.rows,
+                                })
+                            )}\n\`\`\``
+                        );
                     }
                 }
 
