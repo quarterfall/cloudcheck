@@ -172,7 +172,6 @@ function transformDataShape({
     let code = exitCode || ExitCode.NoError;
 
     if (stderr) {
-        console.log(stderr);
         log.push(stderr.toString());
     }
 
