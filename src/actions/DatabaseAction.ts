@@ -1,5 +1,5 @@
 import { DatabaseDialect, ExitCode, generateId } from "@quarterfall/core";
-import axios, { AxiosError, AxiosResponse } from "axios";
+import axios, { AxiosResponse } from "axios";
 import { config } from "config";
 import { log } from "helpers/logger";
 import KnexDb, { Knex } from "knex";
@@ -44,6 +44,11 @@ export class DatabaseAction extends ActionHandler {
 
             // if there is an SQL file to run, do it here
             if (this.actionOptions.databaseFileUrl) {
+                console.log(
+                    await fetch(this.actionOptions.databaseFileUrl)
+                        .then((result) => console.log(result.body))
+                        .catch((error) => console.log(error))
+                );
                 // retrieve the file
                 await axios
                     .get<any, { data: string }>(
@@ -61,8 +66,7 @@ export class DatabaseAction extends ActionHandler {
                                 await this.db.raw(result.data);
                             }
                         }
-                    )
-                    .catch((error: AxiosError) => console.log(error.response));
+                    );
             }
         } catch (error) {
             return {
