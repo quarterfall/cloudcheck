@@ -1,5 +1,5 @@
 import { DatabaseDialect, ExitCode, generateId } from "@quarterfall/core";
-import axios from "axios";
+import axios, { AxiosError, AxiosResponse } from "axios";
 import { config } from "config";
 import { log } from "helpers/logger";
 import KnexDb, { Knex } from "knex";
@@ -45,22 +45,24 @@ export class DatabaseAction extends ActionHandler {
             // if there is an SQL file to run, do it here
             if (this.actionOptions.databaseFileUrl) {
                 // retrieve the file
-                const result = await axios.get<any, { data: string }>(
-                    this.actionOptions.databaseFileUrl,
-                    {
-                        headers: {
-                            Accept: "application/json",
-                            "User-Agent": "axios 0.27.2",
-                        },
-                    }
-                );
-                const resultCleaned = (result.data || "")
-                    .replace(/(\r\n|\n|\r|\t)/gm, "")
-                    .trim();
-                if (resultCleaned !== "") {
-                    // run the sql queries here
-                    await this.db.raw(result.data);
-                }
+                await axios
+                    .get<any, { data: string }>(
+                        this.actionOptions.databaseFileUrl
+                    )
+                    .then(
+                        async (
+                            result: AxiosResponse<any, { data: string }>
+                        ) => {
+                            const resultCleaned = (result.data || "")
+                                .replace(/(\r\n|\n|\r|\t)/gm, "")
+                                .trim();
+                            if (resultCleaned !== "") {
+                                // run the sql queries here
+                                await this.db.raw(result.data);
+                            }
+                        }
+                    )
+                    .catch((error: AxiosError) => console.log(error.response));
             }
         } catch (error) {
             return {
