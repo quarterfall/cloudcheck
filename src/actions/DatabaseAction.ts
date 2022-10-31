@@ -44,11 +44,6 @@ export class DatabaseAction extends ActionHandler {
 
             // if there is an SQL file to run, do it here
             if (this.actionOptions.databaseFileUrl) {
-                console.log(
-                    await fetch(this.actionOptions.databaseFileUrl)
-                        .then((result) => console.log(result.body))
-                        .catch((error) => console.log(error))
-                );
                 // retrieve the file
                 await axios
                     .get<any, { data: string }>(
