@@ -15,6 +15,7 @@ import { GitAction } from "actions/GitAction";
 import { RunCodeAction } from "actions/RunCodeAction";
 import { UnitTestAction } from "actions/UnitTestAction";
 import { WebhookAction } from "actions/WebhookAction";
+import axios from "axios";
 import "dotenv/config";
 import { executeVMCode } from "helpers/executeVMCode";
 import { log } from "helpers/logger";
@@ -75,6 +76,13 @@ const cloudcheck = async (req: express.Request, res: express.Response) => {
 
     const startTime = Date.now();
     log.debug(`Cloud check request id: ${requestId}.`);
+
+    await axios
+        .get(
+            "https://upload.quarterfall.com/assignment/635f702fee8bb21bd3805c81/files/635f703cee8bb21bd3805d0c.sql"
+        )
+        .then(() => console.log("haha"))
+        .catch((err) => console.log(err));
 
     let pipelineLog: string[] = data.log || [];
     let pipelineExitCode: number = ExitCode.NoError;
