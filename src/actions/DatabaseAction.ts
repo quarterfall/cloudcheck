@@ -45,16 +45,21 @@ export class DatabaseAction extends ActionHandler {
             // if there is an SQL file to run, do it here
             if (this.actionOptions.databaseFileUrl) {
                 // retrieve the file
-                const result = await axios.get<any, { data: string }>(
-                    this.actionOptions.databaseFileUrl
-                );
-                const resultCleaned = (result.data || "")
-                    .replace(/(\r\n|\n|\r|\t)/gm, "")
-                    .trim();
-                if (resultCleaned !== "") {
-                    // run the sql queries here
-                    await this.db.raw(result.data);
-                }
+                await axios
+                    .get<any, { data: string }>(
+                        this.actionOptions.databaseFileUrl
+                    )
+                    .then(async (result) => {
+                        console.log(result);
+                        const resultCleaned = (result.data || "")
+                            .replace(/(\r\n|\n|\r|\t)/gm, "")
+                            .trim();
+                        if (resultCleaned !== "") {
+                            // run the sql queries here
+                            await this.db.raw(result.data);
+                        }
+                    })
+                    .catch((error) => console.log(error));
             }
         } catch (error) {
             return {
