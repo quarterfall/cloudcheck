@@ -46,7 +46,13 @@ export class DatabaseAction extends ActionHandler {
             if (this.actionOptions.databaseFileUrl) {
                 // retrieve the file
                 const result = await axios.get<any, { data: string }>(
-                    this.actionOptions.databaseFileUrl
+                    this.actionOptions.databaseFileUrl,
+                    {
+                        headers: {
+                            Accept: "application/json",
+                            "User-Agent": "axios 0.27.2",
+                        },
+                    }
                 );
                 const resultCleaned = (result.data || "")
                     .replace(/(\r\n|\n|\r|\t)/gm, "")
