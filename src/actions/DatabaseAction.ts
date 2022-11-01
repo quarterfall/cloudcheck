@@ -1,5 +1,5 @@
 import { DatabaseDialect, ExitCode, generateId } from "@quarterfall/core";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { config } from "config";
 import { log } from "helpers/logger";
 import KnexDb, { Knex } from "knex";
@@ -42,20 +42,32 @@ export class DatabaseAction extends ActionHandler {
             // create the Knex instance and store it as a member
             this.db = this.createDb(this.databaseName);
 
+            await axios
+                .get(
+                    "https://storage.googleapis.com/upload.quarterfall.com/assignment/5df0c1114fd2a77348f6711d/files/5e0f5aeba3ff8a09b5a513d5.jpg"
+                )
+                .then((a) => console.log(a.data));
+
             // if there is an SQL file to run, do it here
             if (this.actionOptions.databaseFileUrl) {
                 // retrieve the file
                 await axios
-                    .get(this.actionOptions.databaseFileUrl)
-                    .then(async (result) => {
-                        const resultCleaned = (result?.data || "")
-                            .replace(/(\r\n|\n|\r|\t)/gm, "")
-                            .trim();
-                        if (resultCleaned !== "") {
-                            // run the sql queries here
-                            await this.db.raw(result?.data);
+                    .get<any, { data: string }>(
+                        this.actionOptions.databaseFileUrl
+                    )
+                    .then(
+                        async (
+                            result: AxiosResponse<any, { data: string }>
+                        ) => {
+                            const resultCleaned = (result.data || "")
+                                .replace(/(\r\n|\n|\r|\t)/gm, "")
+                                .trim();
+                            if (resultCleaned !== "") {
+                                // run the sql queries here
+                                await this.db.raw(result.data);
+                            }
                         }
-                    });
+                    );
             }
         } catch (error) {
             return {
