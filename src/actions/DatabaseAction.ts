@@ -1,5 +1,5 @@
 import { DatabaseDialect, ExitCode, generateId } from "@quarterfall/core";
-import axios, { AxiosResponse } from "axios";
+import axios from "axios";
 import { config } from "config";
 import { log } from "helpers/logger";
 import KnexDb, { Knex } from "knex";
@@ -42,31 +42,20 @@ export class DatabaseAction extends ActionHandler {
             // create the Knex instance and store it as a member
             this.db = this.createDb(this.databaseName);
 
-            await axios
-                .get("https://www.boredapi.com/api/activity")
-                .then((data) => console.log(data))
-                .catch((error) => console.log(error));
-
             // if there is an SQL file to run, do it here
             if (this.actionOptions.databaseFileUrl) {
                 // retrieve the file
                 await axios
-                    .get<any, { data: string }>(
-                        this.actionOptions.databaseFileUrl
-                    )
-                    .then(
-                        async (
-                            result: AxiosResponse<any, { data: string }>
-                        ) => {
-                            const resultCleaned = (result.data || "")
-                                .replace(/(\r\n|\n|\r|\t)/gm, "")
-                                .trim();
-                            if (resultCleaned !== "") {
-                                // run the sql queries here
-                                await this.db.raw(result.data);
-                            }
+                    .get(this.actionOptions.databaseFileUrl)
+                    .then(async (result) => {
+                        const resultCleaned = (result?.data || "")
+                            .replace(/(\r\n|\n|\r|\t)/gm, "")
+                            .trim();
+                        if (resultCleaned !== "") {
+                            // run the sql queries here
+                            await this.db.raw(result?.data);
                         }
-                    );
+                    });
             }
         } catch (error) {
             return {
