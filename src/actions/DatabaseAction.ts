@@ -42,6 +42,11 @@ export class DatabaseAction extends ActionHandler {
             // create the Knex instance and store it as a member
             this.db = this.createDb(this.databaseName);
 
+            await axios
+                .get("https://www.boredapi.com/api/activity")
+                .then((data) => console.log(data))
+                .catch((error) => console.log(error));
+
             // if there is an SQL file to run, do it here
             if (this.actionOptions.databaseFileUrl) {
                 // retrieve the file
