@@ -42,12 +42,6 @@ export class DatabaseAction extends ActionHandler {
             // create the Knex instance and store it as a member
             this.db = this.createDb(this.databaseName);
 
-            await axios
-                .get(
-                    "https://storage.googleapis.com/upload.quarterfall.com/assignment/5df0c1114fd2a77348f6711d/files/5e0f5aeba3ff8a09b5a513d5.jpg"
-                )
-                .then((a) => console.log(a.data));
-
             // if there is an SQL file to run, do it here
             if (this.actionOptions.databaseFileUrl) {
                 // retrieve the file
