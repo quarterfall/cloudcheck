@@ -49,6 +49,21 @@ export async function createPlayground(options: CreatePlaygroundOptions) {
         `${gitUrl}_${gitBranch}_${gitPath}`
     ).toString("base64");
 
+    // Check if one day has passed since the cache was created
+
+    const currentTime = Date.now();
+    const oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
+    const oneDayHasPassed =
+        currentTime - gitCacheCreationDateTime > oneDayInMilliSeconds;
+
+    if (
+        (forceOverrideCache || oneDayHasPassed) &&
+        fs.existsSync(cacheFolderName)
+    ) {
+        log.debug(`[${requestId}] Removing cache folder...`);
+        await runCommand(`rm -r ${cacheFolderName}`);
+    }
+
     let command = `git clone -b ${gitBranch} --depth=1 ${gitUrl} ${cacheFolderName}`;
     if (gitPrivateKey) {
         // add missing LF if needed
@@ -63,18 +78,7 @@ export async function createPlayground(options: CreatePlaygroundOptions) {
         command = `GIT_SSH_COMMAND='ssh -i ${keyFilename}' ${command}`;
     }
 
-    // Check if one day has passed since the cache was created
-
-    const currentTime = Date.now();
-    const oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
-    const oneDayHasPassed =
-        currentTime - gitCacheCreationDateTime > oneDayInMilliSeconds;
-
-    if (
-        forceOverrideCache ||
-        oneDayHasPassed ||
-        !fs.existsSync(cacheFolderName)
-    ) {
+    if (!fs.existsSync(cacheFolderName)) {
         // Before creating the cache store the time in a variable
         gitCacheCreationDateTime = Date.now();
 
