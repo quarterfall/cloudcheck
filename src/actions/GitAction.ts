@@ -13,8 +13,14 @@ export class GitAction extends ActionHandler {
         requestId: string,
         _languageData: any
     ): Promise<CloudcheckActionResponse> {
-        const { gitUrl, gitBranch, gitPrivateKey, gitPath, localPath } =
-            this.actionOptions;
+        const {
+            gitUrl,
+            gitBranch,
+            gitPrivateKey,
+            gitPath,
+            localPath,
+            forceOverrideCache,
+        } = this.actionOptions;
 
         let exitCode = ExitCode.NoError;
         let exitLog = [];
@@ -35,6 +41,7 @@ export class GitAction extends ActionHandler {
             gitPath,
             gitPrivateKey,
             gitCacheCreationDateTime,
+            forceOverrideCache,
             requestId,
             localPath,
             log: exitLog,
