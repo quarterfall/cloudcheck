@@ -1,7 +1,7 @@
 import { ExitCode, replaceQuotes } from "@quarterfall/core";
 import { cleanupLog } from "helpers/cleanupLog";
 import { NodeVM, VMScript } from "vm2";
-import { RunCodeOptions } from "./runCode";
+import { RunCodeOptions } from "./codeRunners";
 import ts = require("typescript");
 import lodash = require("lodash");
 

@@ -4,10 +4,10 @@ import {
     ProgrammingLanguage,
     supportedLanguagesIOTesting,
 } from "@quarterfall/core";
+import { runJavascript } from "helpers/codeRunners/runJavascript";
 import { executeVMCode } from "helpers/executeVMCode";
 import { log } from "helpers/logger";
 import { runCode } from "helpers/runCode";
-import { runJavascript } from "helpers/runJavascript";
 import { ActionHandler } from "./ActionFactory";
 import Handlebars = require("handlebars");
 
