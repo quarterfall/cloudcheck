@@ -7,8 +7,8 @@ export async function runJava(options: RunCodeOptions) {
     const mainClassName =
         code
             .slice(0, code.indexOf(`public static void main(String[] args)`))
-            .match(/class [a-zA-Z]+/)[0]
-            .replace("class", "")
+            .match(/public class [a-zA-Z]+/)[0]
+            .replace("public class", "")
             .trim() || "Answer";
     const path = `${filePath}/${mainClassName}.java`;
     if (!fs.existsSync(path)) {
