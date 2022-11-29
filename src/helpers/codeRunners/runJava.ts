@@ -9,7 +9,7 @@ export async function runJava(options: RunCodeOptions) {
             .slice(0, code.indexOf(`public static void main(String[] args)`))
             .match(/class [a-zA-Z]+/)[0]
             .replace("class", "")
-            .trim() || "Code";
+            .trim() || "Answer";
     const path = `${filePath}/${mainClassName}.java`;
     if (!fs.existsSync(path)) {
         fs.writeFileSync(path, code);
