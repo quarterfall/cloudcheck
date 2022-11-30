@@ -1,7 +1,7 @@
 import { CloudcheckActionResponse, ExitCode } from "@quarterfall/core";
 import { log } from "helpers/logger";
 import { runScript } from "helpers/runScript";
-import { createPlayground } from "./createPlayground";
+import { createPlayground } from "../createPlayground";
 import fs = require("fs");
 
 interface RunJavascriptCodeOptions {
