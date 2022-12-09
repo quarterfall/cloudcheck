@@ -85,6 +85,6 @@ export class GitAction extends ActionHandler {
         }
 
         // return the feedback
-        return { data: resultData, log: [], code: exitCode };
+        return { data: resultData, log: exitLog, code: exitCode };
     }
 }
