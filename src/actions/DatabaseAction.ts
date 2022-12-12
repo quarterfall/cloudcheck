@@ -4,7 +4,7 @@ import { config } from "config";
 import { log } from "helpers/logger";
 import KnexDb, { Knex } from "knex";
 import schemaInspector from "knex-schema-inspector";
-import { cloneDeep } from "lodash";
+import { cloneDeep, isArray } from "lodash";
 import { ActionHandler } from "./ActionFactory";
 import Handlebars = require("handlebars");
 
@@ -92,26 +92,62 @@ export class DatabaseAction extends ActionHandler {
             // now run the answer by the student
             data.dbQueryResultRaw = await this.db.raw(data.embeddedAnswer);
 
+            if (!isArray(data.dbQueryResultRaw)) {
+                data.dbQueryResultRaw = [data.dbQueryResultRaw];
+            }
+
+            let parsedQueryResult = JSON.parse(
+                JSON.stringify(data.dbQueryResultRaw)
+            );
+
             if (!hideFeedback) {
                 data.feedback = data.feedback || [];
 
                 const queryFeedback: string[] = [];
 
-                const parsedDbQueryResult = JSON.parse(
-                    JSON.stringify(data.dbQueryResultRaw)
-                );
-
                 if (
                     this.actionOptions.databaseDialect === DatabaseDialect.mysql
                 ) {
-                    data.dbQueryResult = parsedDbQueryResult[0];
+                    // find all lines of sql
+                    const lines = data.embeddedAnswer
+                        .toLowerCase()
+                        .toString()
+                        .split(";")
+                        .map((element) => element.trim())
+                        .filter((element) => element !== "");
 
-                    if (data.embeddedAnswer.toLowerCase().includes("select")) {
+                    // find lines with select command
+                    const linesWithSelect = lines.reduce(function (a, e, i) {
+                        if (e.includes("select")) {
+                            a.push(i);
+                        }
+                        return a;
+                    }, []);
+
+                    const rows = parsedQueryResult[0].filter(
+                        (_: any, i: number) =>
+                            linesWithSelect.some((j: any) => i === j)
+                    );
+                    const columns = parsedQueryResult[1].filter(
+                        (_: any, i: number) =>
+                            linesWithSelect.some((j: any) => i === j)
+                    );
+
+                    const obj = {};
+                    obj["lines"] = [];
+                    rows.forEach((element, index) => {
+                        obj["lines"].push({
+                            row: element,
+                            columns: columns[index],
+                        });
+                    });
+
+                    for (const result of obj["lines"]) {
                         queryFeedback.push(
                             `\`\`\`table\n${JSON.stringify(
                                 this.generateFeedbackTableFromResult({
-                                    fields: parsedDbQueryResult[1],
-                                    rows: parsedDbQueryResult[0],
+                                    fields: result.columns,
+                                    rows: result.row,
                                 })
                             )}\n\`\`\``
                         );
@@ -122,20 +158,19 @@ export class DatabaseAction extends ActionHandler {
                     this.actionOptions.databaseDialect ===
                     DatabaseDialect.postgresql
                 ) {
-                    data.dbQueryResult = parsedDbQueryResult.rows;
-
-                    if (
-                        (parsedDbQueryResult?.command || "").toLowerCase() ===
-                        "select"
-                    ) {
-                        queryFeedback.push(
-                            `\`\`\`table\n${JSON.stringify(
-                                this.generateFeedbackTableFromResult({
-                                    fields: parsedDbQueryResult.fields,
-                                    rows: parsedDbQueryResult.rows,
-                                })
-                            )}\n\`\`\``
-                        );
+                    for (const result of parsedQueryResult) {
+                        if (
+                            (result?.command || "").toLowerCase() === "select"
+                        ) {
+                            queryFeedback.push(
+                                `\`\`\`table\n${JSON.stringify(
+                                    this.generateFeedbackTableFromResult({
+                                        fields: result.fields,
+                                        rows: result.rows,
+                                    })
+                                )}\n\`\`\``
+                            );
+                        }
                     }
                 }
 
