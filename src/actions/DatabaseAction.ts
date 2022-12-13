@@ -91,12 +91,13 @@ export class DatabaseAction extends ActionHandler {
 
             // now run the answer by the student
             data.dbQueryResultRaw = await this.db.raw(data.embeddedAnswer);
+            data.dbQueryResult = [];
 
             if (!isArray(data.dbQueryResultRaw)) {
                 data.dbQueryResultRaw = [data.dbQueryResultRaw];
             }
 
-            let parsedQueryResult = JSON.parse(
+            const parsedQueryResult = JSON.parse(
                 JSON.stringify(data.dbQueryResultRaw)
             );
 
@@ -108,46 +109,22 @@ export class DatabaseAction extends ActionHandler {
                 if (
                     this.actionOptions.databaseDialect === DatabaseDialect.mysql
                 ) {
-                    // find all lines of sql
-                    const lines = data.embeddedAnswer
-                        .toLowerCase()
-                        .toString()
-                        .split(";")
-                        .map((element) => element.trim())
-                        .filter((element) => element !== "");
-
-                    // find lines with select command
-                    const linesWithSelect = lines.reduce(function (a, e, i) {
-                        if (e.includes("select")) {
-                            a.push(i);
-                        }
-                        return a;
-                    }, []);
-
-                    const rows = parsedQueryResult[0].filter(
-                        (_: any, i: number) =>
-                            linesWithSelect.some((j: any) => i === j)
-                    );
-                    const columns = parsedQueryResult[1].filter(
-                        (_: any, i: number) =>
-                            linesWithSelect.some((j: any) => i === j)
-                    );
-
-                    const obj = {};
-                    obj["lines"] = [];
-                    rows.forEach((element, index) => {
-                        obj["lines"].push({
-                            row: element,
-                            columns: columns[index],
-                        });
-                    });
-
-                    for (const result of obj["lines"]) {
+                    const { data: resultData, queryResults } =
+                        this.generateQueryResultForMysql(
+                            data,
+                            parsedQueryResult
+                        );
+                    data = resultData;
+                    for (const result of queryResults) {
                         queryFeedback.push(
                             `\`\`\`table\n${JSON.stringify(
                                 this.generateFeedbackTableFromResult({
-                                    fields: result.columns,
-                                    rows: result.row,
+                                    fields: isArray(result.columns)
+                                        ? result.columns
+                                        : [result.columns],
+                                    rows: isArray(result.rows)
+                                        ? result.rows
+                                        : [result.rows],
                                 })
                             )}\n\`\`\``
                         );
@@ -162,6 +139,7 @@ export class DatabaseAction extends ActionHandler {
                         if (
                             (result?.command || "").toLowerCase() === "select"
                         ) {
+                            data.dbQueryResult.push(result.rows);
                             queryFeedback.push(
                                 `\`\`\`table\n${JSON.stringify(
                                     this.generateFeedbackTableFromResult({
@@ -222,6 +200,58 @@ export class DatabaseAction extends ActionHandler {
             log: [],
             code: ExitCode.NoError,
         };
+    }
+
+    protected generateQueryResultForMysql(data: any, parsedQueryResult: any) {
+        // find all lines of sql
+        const lines: any[] =
+            data.embeddedAnswer
+                .toLowerCase()
+                .toString()
+                .split(";")
+                .map((element: any) => element.trim())
+                .filter((element: any) => element !== "") || [];
+
+        // find lines with select command
+        const linesWithSelectCommand = lines.reduce(function (
+            lineList,
+            line,
+            index
+        ) {
+            if (line.includes("select")) {
+                lineList.push(index);
+            }
+            return lineList;
+        },
+        []);
+
+        // Generate row and column lists per line
+        const rowList = parsedQueryResult[0].filter((_: any, i: number) =>
+            linesWithSelectCommand.some((j: any) => i === j)
+        );
+        const columnList = parsedQueryResult[1].filter((_: any, i: number) =>
+            linesWithSelectCommand.some((j: any) => i === j)
+        );
+
+        const queryResults = [];
+        if (lines.length !== 1) {
+            rowList.forEach((rows, index) => {
+                data.dbQueryResult = rows;
+                queryResults.push({
+                    rows,
+                    columns: columnList[index],
+                });
+            });
+        } else {
+            queryResults.push({
+                rows: linesWithSelectCommand.length ? parsedQueryResult[0] : [],
+                columns: linesWithSelectCommand.length
+                    ? parsedQueryResult[1]
+                    : [],
+            });
+            data.dbQueryResult = parsedQueryResult[0];
+        }
+        return { data, queryResults };
     }
 
     protected generateFeedbackTableFromResult(result: any) {
