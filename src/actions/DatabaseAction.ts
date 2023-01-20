@@ -101,65 +101,54 @@ export class DatabaseAction extends ActionHandler {
                 JSON.stringify(data.dbQueryResultRaw)
             );
 
-            if (!hideFeedback) {
-                data.feedback = data.feedback || [];
+            const queryFeedback: string[] = [];
 
-                const queryFeedback: string[] = [];
+            if (this.actionOptions.databaseDialect === DatabaseDialect.mysql) {
+                const { data: resultData, queryResults } =
+                    this.generateQueryResultForMysql(data, parsedQueryResult);
+                data = resultData;
+                for (const result of queryResults) {
+                    queryFeedback.push(
+                        `\`\`\`table\n${JSON.stringify(
+                            this.generateFeedbackTableFromResult({
+                                fields: isArray(result.columns)
+                                    ? result.columns
+                                    : [result.columns],
+                                rows: isArray(result.rows)
+                                    ? result.rows
+                                    : [result.rows],
+                            })
+                        )}\n\`\`\``
+                    );
+                }
+            }
 
-                if (
-                    this.actionOptions.databaseDialect === DatabaseDialect.mysql
-                ) {
-                    const { data: resultData, queryResults } =
-                        this.generateQueryResultForMysql(
-                            data,
-                            parsedQueryResult
-                        );
-                    data = resultData;
-                    for (const result of queryResults) {
+            if (
+                this.actionOptions.databaseDialect ===
+                DatabaseDialect.postgresql
+            ) {
+                for (const result of parsedQueryResult) {
+                    if ((result?.command || "").toLowerCase() === "select") {
+                        data.dbQueryResult.push(result.rows);
                         queryFeedback.push(
                             `\`\`\`table\n${JSON.stringify(
                                 this.generateFeedbackTableFromResult({
-                                    fields: isArray(result.columns)
-                                        ? result.columns
-                                        : [result.columns],
-                                    rows: isArray(result.rows)
-                                        ? result.rows
-                                        : [result.rows],
+                                    fields: result.fields,
+                                    rows: result.rows,
                                 })
                             )}\n\`\`\``
                         );
                     }
                 }
+            }
 
-                if (
-                    this.actionOptions.databaseDialect ===
-                    DatabaseDialect.postgresql
-                ) {
-                    for (const result of parsedQueryResult) {
-                        if (
-                            (result?.command || "").toLowerCase() === "select"
-                        ) {
-                            data.dbQueryResult.push(result.rows);
-                            queryFeedback.push(
-                                `\`\`\`table\n${JSON.stringify(
-                                    this.generateFeedbackTableFromResult({
-                                        fields: result.fields,
-                                        rows: result.rows,
-                                    })
-                                )}\n\`\`\``
-                            );
-                        }
-                    }
-                }
-
-                if (queryFeedback.length > 0) {
-                    data.feedback.push(
-                        `## ${
-                            languageData.queryResultTitle || "Query result:"
-                        }`,
-                        ...queryFeedback
-                    );
-                }
+            // if there is a query result and we want to show it to the user, add it to the feedback
+            if (!hideFeedback && queryFeedback.length > 0) {
+                data.feedback = data.feedback || [];
+                data.feedback.push(
+                    `## ${languageData.queryResultTitle || "Query result:"}`,
+                    ...queryFeedback
+                );
             }
         } catch (error) {
             return {
