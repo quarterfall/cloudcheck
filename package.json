@@ -16,7 +16,7 @@
         "dotenv": "^16.0.3",
         "express": "^4.17.1",
         "handlebars": "^4.7.7",
-        "knex": "^2.3.0",
+        "knex": "^2.4.0",
         "knex-schema-inspector": "^2.0.4",
         "lodash": "^4.17.21",
         "mysql": "^2.18.1",
