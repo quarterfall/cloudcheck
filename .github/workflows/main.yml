@@ -1,4 +1,4 @@
-name: Build and Deploy to Cloudrun - Production
+name: Build and Deploy to GKE - Production
 
 on:
     push:

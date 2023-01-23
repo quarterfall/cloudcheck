@@ -1,4 +1,4 @@
-name: Build and Deploy to Cloudrun - Staging
+name: Build and Deploy to GKE - Staging
 
 on:
     push:

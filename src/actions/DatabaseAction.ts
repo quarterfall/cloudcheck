@@ -4,7 +4,7 @@ import { config } from "config";
 import { log } from "helpers/logger";
 import KnexDb, { Knex } from "knex";
 import schemaInspector from "knex-schema-inspector";
-import { cloneDeep } from "lodash";
+import { cloneDeep, isArray } from "lodash";
 import { ActionHandler } from "./ActionFactory";
 import Handlebars = require("handlebars");
 
@@ -98,62 +98,64 @@ export class DatabaseAction extends ActionHandler {
 
             // now run the answer by the student
             data.dbQueryResultRaw = await this.db.raw(data.embeddedAnswer);
+            data.dbQueryResult = [];
 
-            if (!hideFeedback) {
-                data.feedback = data.feedback || [];
+            if (!isArray(data.dbQueryResultRaw)) {
+                data.dbQueryResultRaw = [data.dbQueryResultRaw];
+            }
 
-                const queryFeedback: string[] = [];
+            const parsedQueryResult = JSON.parse(
+                JSON.stringify(data.dbQueryResultRaw)
+            );
 
-                const parsedDbQueryResult = JSON.parse(
-                    JSON.stringify(data.dbQueryResultRaw)
-                );
+            const queryFeedback: string[] = [];
 
-                if (
-                    this.actionOptions.databaseDialect === DatabaseDialect.mysql
-                ) {
-                    data.dbQueryResult = parsedDbQueryResult[0];
-
-                    if (data.embeddedAnswer.toLowerCase().includes("select")) {
-                        queryFeedback.push(
-                            `\`\`\`table\n${JSON.stringify(
-                                this.generateFeedbackTableFromResult({
-                                    fields: parsedDbQueryResult[1],
-                                    rows: parsedDbQueryResult[0],
-                                })
-                            )}\n\`\`\``
-                        );
-                    }
-                }
-
-                if (
-                    this.actionOptions.databaseDialect ===
-                    DatabaseDialect.postgresql
-                ) {
-                    data.dbQueryResult = parsedDbQueryResult.rows;
-
-                    if (
-                        (parsedDbQueryResult?.command || "").toLowerCase() ===
-                        "select"
-                    ) {
-                        queryFeedback.push(
-                            `\`\`\`table\n${JSON.stringify(
-                                this.generateFeedbackTableFromResult({
-                                    fields: parsedDbQueryResult.fields,
-                                    rows: parsedDbQueryResult.rows,
-                                })
-                            )}\n\`\`\``
-                        );
-                    }
-                }
-
-                if (queryFeedback.length > 0) {
-                    data.feedback.push(
-                        `## ${
-                            languageData.queryResultTitle || "Query result:"
-                        }`,
-                        ...queryFeedback
+            if (this.actionOptions.databaseDialect === DatabaseDialect.mysql) {
+                const { data: resultData, queryResults } =
+                    this.generateQueryResultForMysql(data, parsedQueryResult);
+                data = resultData;
+                for (const result of queryResults) {
+                    queryFeedback.push(
+                        `\`\`\`table\n${JSON.stringify(
+                            this.generateFeedbackTableFromResult({
+                                fields: isArray(result.columns)
+                                    ? result.columns
+                                    : [result.columns],
+                                rows: isArray(result.rows)
+                                    ? result.rows
+                                    : [result.rows],
+                            })
+                        )}\n\`\`\``
                     );
                 }
+            }
+
+            if (
+                this.actionOptions.databaseDialect ===
+                DatabaseDialect.postgresql
+            ) {
+                for (const result of parsedQueryResult) {
+                    if ((result?.command || "").toLowerCase() === "select") {
+                        data.dbQueryResult.push(result.rows);
+                        queryFeedback.push(
+                            `\`\`\`table\n${JSON.stringify(
+                                this.generateFeedbackTableFromResult({
+                                    fields: result.fields,
+                                    rows: result.rows,
+                                })
+                            )}\n\`\`\``
+                        );
+                    }
+                }
+            }
+
+            // if there is a query result and we want to show it to the user, add it to the feedback
+            if (!hideFeedback && queryFeedback.length > 0) {
+                data.feedback = data.feedback || [];
+                data.feedback.push(
+                    `## ${languageData.queryResultTitle || "Query result:"}`,
+                    ...queryFeedback
+                );
             }
         } catch (error) {
             return {
@@ -194,6 +196,58 @@ export class DatabaseAction extends ActionHandler {
             log: [],
             code: ExitCode.NoError,
         };
+    }
+
+    protected generateQueryResultForMysql(data: any, parsedQueryResult: any) {
+        // find all lines of sql
+        const lines: any[] =
+            data.embeddedAnswer
+                .toLowerCase()
+                .toString()
+                .split(";")
+                .map((element: any) => element.trim())
+                .filter((element: any) => element !== "") || [];
+
+        // find lines with select command
+        const linesWithSelectCommand = lines.reduce(function (
+            lineList,
+            line,
+            index
+        ) {
+            if (line.includes("select")) {
+                lineList.push(index);
+            }
+            return lineList;
+        },
+        []);
+
+        // Generate row and column lists per line
+        const rowList = parsedQueryResult[0].filter((_: any, i: number) =>
+            linesWithSelectCommand.some((j: any) => i === j)
+        );
+        const columnList = parsedQueryResult[1].filter((_: any, i: number) =>
+            linesWithSelectCommand.some((j: any) => i === j)
+        );
+
+        const queryResults = [];
+        if (lines.length !== 1) {
+            rowList.forEach((rows, index) => {
+                data.dbQueryResult = rows;
+                queryResults.push({
+                    rows,
+                    columns: columnList[index],
+                });
+            });
+        } else {
+            queryResults.push({
+                rows: linesWithSelectCommand.length ? parsedQueryResult[0] : [],
+                columns: linesWithSelectCommand.length
+                    ? parsedQueryResult[1]
+                    : [],
+            });
+            data.dbQueryResult = parsedQueryResult[0];
+        }
+        return { data, queryResults };
     }
 
     protected generateFeedbackTableFromResult(result: any) {

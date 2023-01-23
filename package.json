@@ -1,6 +1,6 @@
 {
     "name": "quarterfall-cloudcheck",
-    "version": "2.4.1",
+    "version": "2.5.0",
     "description": "Simple deployable cloud checker",
     "main": "index.js",
     "scripts": {
