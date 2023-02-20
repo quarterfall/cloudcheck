@@ -16,7 +16,7 @@ RUN chmod +x /usr/src/app/start.sh
 WORKDIR /usr/src/app
 
 # Install the node modules
-RUN npm install
+RUN yarn install
 
 # Install basic dependencies from the package manager
 RUN apt-get update && apt-get install -y \
